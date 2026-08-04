@@ -271,4 +271,24 @@ if (!statusCode.equals(previousStatusCode)) {
         //
         // ぼくらは例外です。
     }
+    
+	// #1on1: haru質問: setupSelect_...()とquery...()をテーブル同士でくっつけるか？ (2026/08/04)
+    //
+    // Effective ConditionBean | DBFlute
+    // https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/effective.html#implorder
+    // 
+    // 実装順序は、データの取得、絞り込み、並び替え
+    // DBFluteの決まり(提案)としては、もう目的ごとに書くようにしている。
+    // 
+    // setupSelect_とquery...は、目的として全然別物で、
+    // どちらか片方だけになることもある。
+    // order byのことも考えると、テーブル単位で合わせることに無理が出てくるので、
+    // 目的ごとに集めるのが自然で、SQLのイメージにも合う。
+    //
+    // 一方で、SpecifyColumnはSetupSelectに合わせる。
+    // それは、SpecifyColumnはSetupSelectに属する機能だから。
+    // select句に関する制御という意味で目的が同じだから。
+
+    // #1on1: jflute質問: Slackの隣の絵文字はどうやってるのか？ (2026/08/04)
+    // statusで絵文字使えること教えてもらった。
 }
