@@ -16,16 +16,20 @@ import org.docksidestage.handson.dbflute.exentity.Member;
 import org.docksidestage.handson.dbflute.exentity.MemberSecurity;
 import org.docksidestage.handson.dbflute.exentity.MemberStatus;
 import org.docksidestage.handson.unit.UnitContainerTestCase;
+import org.docksidestage.handson.dbflute.exbhv.PurchaseBhv;
+import org.docksidestage.handson.dbflute.exentity.Purchase;
 
 /**
  * @author harukaedo
  */
 public class HandsOn03Test extends UnitContainerTestCase {
-    
+
     @Resource
     private MemberBhv memberBhv;
     @Resource
     private MemberSecurityBhv memberSecurityBhv;
+    @Resource
+    private PurchaseBhv purchaseBhv;
 
     /*
     Silverストレッチ①
@@ -256,7 +260,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 会員が会員ステータスごとに固まって並んでいることをアサート
         // 切り替わった数＝ステータスの種類数であることをアサートすれば、固まっていることの確認になる
         assertEquals(memberStatusSet.size(), switchCount);
-        
+
         // #1on1: 別の考え方 (2026/06/05)
         // 切り替わるタイミングで、今まですでに登場してきたステータスが新しく登場したらOUT
         // A A B B C C
@@ -271,15 +275,45 @@ if (!statusCode.equals(previousStatusCode)) {
         //
         // ぼくらは例外です。
     }
-    
+
+    /*
+    Goldストレッチ⑤
+    生年月日が存在する会員の購入を検索
+    - 会員名称と会員ステータス名称と商品名を取得する(ログ出力)
+    - 購入日時の降順、購入価格の降順、商品IDの昇順、会員IDの昇順で並べる
+    - OrderBy dがたくさん追加されていることをログで目視確認すること
+    - 購入に紐づく会員の生年月日が存在することをアサート
+    */
+   //
+   public void test_existsBirthdateMemberPurchase() throws Exception {
+    // Arrange
+    // 特定のものでもないので、特に定義は必要なさそう
+
+    // Act
+    // 複数指定になるので、Listで取得する
+    ListResultBean<Purchase> purchaseList = purchaseBhv.selectList(cb -> {
+        // select句たち
+        // 会員の名称・ステータス名称を取得するためにセットする(select句たち)
+        cb.setupSelect_Member().withMemberStatus();
+        // 購入した商品名も取得したいので、セットする
+        cb.setupSelect_Product();
+        // where句たち
+        // 会員の生年月日が存在することを条件に加える
+        cb.query().queryMember().setBirthdate_IsNotNull();
+        // 購入日時の降順、購入価格の降順、商品IDの昇s順、会員IDの昇順で並べる
+        cb.query().addOrderBy_PurchaseDatetime_Desc();//購入日時の降順
+        cb.query().addOrderBy_PurchasePrice_Desc();//購入価格の降順
+        cb.query().addOrderBy_ProductId_Asc();//商品IDの昇順
+        cb.query().addOrderBy_MemberId_Asc();//会員IDの昇順
+    });
 	// #1on1: haru質問: setupSelect_...()とquery...()をテーブル同士でくっつけるか？ (2026/08/04)
     //
     // Effective ConditionBean | DBFlute
     // https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/effective.html#implorder
-    // 
+    //
     // 実装順序は、データの取得、絞り込み、並び替え
     // DBFluteの決まり(提案)としては、もう目的ごとに書くようにしている。
-    // 
+    //
     // setupSelect_とquery...は、目的として全然別物で、
     // どちらか片方だけになることもある。
     // order byのことも考えると、テーブル単位で合わせることに無理が出てくるので、
@@ -291,4 +325,19 @@ if (!statusCode.equals(previousStatusCode)) {
 
     // #1on1: jflute質問: Slackの隣の絵文字はどうやってるのか？ (2026/08/04)
     // statusで絵文字使えること教えてもらった。
+
+    // Assert
+    // 空チェック
+    assertFalse(purchaseList.isEmpty());
+    for (Purchase purchase : purchaseList) {
+        // 会員名称と会員ステータス名称と商品名を取得する(ログ出力)
+        String memberName = purchase.getMember().get().getMemberName();
+        String memberStatusName = purchase.getMember().get().getMemberStatus().get().getMemberStatusName();
+        String productName = purchase.getProduct().get().getProductName();
+        log(memberName, memberStatusName, productName);
+
+        // 購入に紐づく会員の生年月日が存在することをアサート
+        assertTrue(purchase.getMember().get().getBirthdate() != null);
+    }
+   }
 }
