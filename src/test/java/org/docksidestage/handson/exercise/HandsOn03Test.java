@@ -300,6 +300,7 @@ if (!statusCode.equals(previousStatusCode)) {
         // where句たち
         // 会員の生年月日が存在することを条件に加える
         cb.query().queryMember().setBirthdate_IsNotNull();
+        // TODO haru select句たち、where句たち、のコメントがあるから "order by句たち" も欲しいですね(^^ (2026/08/19)
         // 購入日時の降順、購入価格の降順、商品IDの昇s順、会員IDの昇順で並べる
         cb.query().addOrderBy_PurchaseDatetime_Desc();//購入日時の降順
         cb.query().addOrderBy_PurchasePrice_Desc();//購入価格の降順
@@ -330,13 +331,28 @@ if (!statusCode.equals(previousStatusCode)) {
     // 空チェック
     assertFalse(purchaseList.isEmpty());
     for (Purchase purchase : purchaseList) {
+        
         // 会員名称と会員ステータス名称と商品名を取得する(ログ出力)
+        //
+        // TODO haru 同じgetがだいぶ繰り返されてコードが膨れて少々みづらいので... (2026/08/19)
+        // 例えば、Member は member変数として抽出してみてください。
+        // e.g. 
+        //  ... = purchase.getMember().get().getMemberName();
+        //  ↓
+        //  Member member = purchase.getMember().get();
+        //  String memberName = member.getMemberName();
+        //  String memberStatusName = member.getMem...
+        //
+        // VSCodeで、purchase.getMember().get()の部分を選択して、command + . (dot) を押して、
+        // "Extract to local variable" とか使うと、比較的簡単にできるのでぜひ試してみてください。
+        //
         String memberName = purchase.getMember().get().getMemberName();
         String memberStatusName = purchase.getMember().get().getMemberStatus().get().getMemberStatusName();
         String productName = purchase.getProduct().get().getProductName();
         log(memberName, memberStatusName, productName);
 
         // 購入に紐づく会員の生年月日が存在することをアサート
+        // TODO haru assertNotNull()というnullチェック専用のメソッドがあるのでそちらを使ってみましょう (2026/08/19)
         assertTrue(purchase.getMember().get().getBirthdate() != null);
     }
    }
