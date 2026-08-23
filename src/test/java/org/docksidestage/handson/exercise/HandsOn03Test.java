@@ -3,6 +3,7 @@ package org.docksidestage.handson.exercise;
 
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -354,6 +355,97 @@ if (!statusCode.equals(previousStatusCode)) {
         // 購入に紐づく会員の生年月日が存在することをアサート
         // TODO haru assertNotNull()というnullチェック専用のメソッドがあるのでそちらを使ってみましょう (2026/08/19)
         assertTrue(purchase.getMember().get().getBirthdate() != null);
+        }
     }
-   }
+
+    /*
+    Goldストレッチ⑥
+    2005年10月の1日から3日までに正式会員になった会員を検索
+    - 画面からの検索条件で2005年10月1日と2005年10月3日がリクエストされたと想定して...
+    - Arrange で String の "2005/10/01", "2005/10/03" を一度宣言してから日時クラスに変換し...
+    - 自分で日付移動などはせず、DBFluteの機能を使って、そのままの日付(日時)を使って条件を設定
+    - 会員ステータスも一緒に取得
+    - ただし、会員ステータス名称だけ取得できればいい (説明や表示順カラムは不要)
+    - 会員名称に "vi" を含む会員を検索
+    - 会員名称と正式会員日時と会員ステータス名称をログに出力
+    - 会員ステータスがコードと名称だけが取得されていることをアサートd
+    - 会員の正式会員日時が指定された条件の範囲内であることをアサート
+     */
+    public void test_officialMemberDatetimeBetween20051001And20051003() throws Exception {
+        // Arrange
+        // 絞りたい日時を用意 (FORMALIZED_DATETIMEはLocalDateTime型なので、最初からLocalDateTimeで作る)
+        LocalDateTime targetStartDatetime = LocalDateTime.of(2005, 10, 1, 0, 0);
+        LocalDateTime targetEndDatetime = LocalDateTime.of(2005, 10, 3, 0, 0);
+        // 会員名称に "vi" を含む会員を検索するための変数を用意
+        String containsStr = "vi";
+
+        // Act
+        // 複数指定になるので、Listで取得する
+        ListResultBean<Member> memberList = memberBhv.selectList(cb -> {
+            // 会員ステータスも一緒に取得するためにセットする(select句たち)
+            cb.setupSelect_MemberStatus();
+            // 会員ステータスは名称だけあれば良いので、名称カラムだけをspecify
+            // specifyについてhttps://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/specify/specifycolumn.html
+            cb.specify().specifyMemberStatus().columnMemberStatusName();
+            // 会員名称に "vi" を含む会員を検索するための条件を設定
+            cb.query().setMemberName_LikeSearch(containsStr, op -> op.likeContain());
+            // 2005年10月の1日から3日までに 正式会員になった会員を検索するための条件を設定
+            cb.query().setFormalizedDatetime_FromTo(targetStartDatetime, targetEndDatetime, op -> op.compareAsDate());
+        });
+
+        // Assert
+        // 空チェック
+        assertFalse(memberList.isEmpty());
+        for (Member member : memberList) {
+            // 会員名称と正式会員日時と会員ステータス名称をログに出力
+            String memberName = member.getMemberName();
+            LocalDateTime officialMemberDatetime = member.getFormalizedDatetime();
+            String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
+            log(memberName, officialMemberDatetime, memberStatusName);
+
+            // 会員ステータスがコードと名称だけが取得されていることをアサート
+            assertTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
+            assertTrue(member.getMemberStatus().get().getMemberStatusName() != null);
+            assertTrue(member.getMemberStatus().get().getDisplayOrder() == null);
+
+            // 会員の正式会員日時が指定された条件の範囲内であることをアサート
+            assertTrue(officialMemberDatetime.compareTo(targetStartDatetime) >= 0);
+            assertTrue(officialMemberDatetime.compareTo(targetEndDatetime) <= 0);
+        }
+    }
+
+    /*
+    Platinumストレッチ⑦
+    正式会員になってから一週間以内の購入を検索
+    - 会員と会員ステータス、会員セキュリティ情報も一緒に取得
+    - 商品と商品ステータス、商品カテゴリ、さらに上位の商品カテゴリも一緒に取得
+    - 上位の商品カテゴリ名が取得できていることをアサート
+    - 購入日時が正式会員になってから一週間以内であることをアサート
+    */
+   //1週間の定義はどうするか？
+   //時間までみる。かっきり、7日後の同時刻まで
+   public void test_purchaseWithinOneWeek() throws Exception {
+    // Arrange
+    // 特定のものでもないので、特に定義は必要なさそう
+
+    //Act
+    // 複数指定になるので、Listで取得する
+    ListResultBean<Purchase> purchaseList = purchaseBhv.selectList(cb -> {
+        // 会員と会員ステータス、会員セキュリティ情報も一緒に取得するためにセットする(select句たち)
+        cb.setupSelect_Member().withMemberStatus();
+        cb.setupSelect_Member().withMemberSecurityAsOne();
+        // 商品と商品ステータスも一緒に取得するためにセットする(select句たち)
+        cb.setupSelect_Product().withProductStatus();
+        // 商品カテゴリと、さらにその上位の商品カテゴリーも一緒に取得するためにセットする(select句たち)
+        cb.setupSelect_Product().withProductCategory().withProductCategorySelf();
+        // 会員が正式会員になっていることを条件に設定
+        cb.query().queryMember().setFormalizedDatetime_IsNotNull();
+        // 購入日時が正式会員になってから一週間以内であることを条件に加える
+        // 0825の宿題
+    });
+
+    // Assert
+    // 空チェック
+    assertFalse(purchaseList.isEmpty());
+}
 }
