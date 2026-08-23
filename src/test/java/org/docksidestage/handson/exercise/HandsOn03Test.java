@@ -301,7 +301,9 @@ if (!statusCode.equals(previousStatusCode)) {
         // where句たち
         // 会員の生年月日が存在することを条件に加える
         cb.query().queryMember().setBirthdate_IsNotNull();
-        // TODO haru select句たち、where句たち、のコメントがあるから "order by句たち" も欲しいですね(^^ (2026/08/19)
+        // TODO  done haru select句たち、where句たち、のコメントがあるから "order by句たち" も欲しいですね(^^ (2026/08/19)
+        //0824修正メモ: order by句たちのコメントを追加した
+        // order by句たち
         // 購入日時の降順、購入価格の降順、商品IDの昇s順、会員IDの昇順で並べる
         cb.query().addOrderBy_PurchaseDatetime_Desc();//購入日時の降順
         cb.query().addOrderBy_PurchasePrice_Desc();//購入価格の降順
@@ -332,12 +334,12 @@ if (!statusCode.equals(previousStatusCode)) {
     // 空チェック
     assertFalse(purchaseList.isEmpty());
     for (Purchase purchase : purchaseList) {
-        
+
         // 会員名称と会員ステータス名称と商品名を取得する(ログ出力)
         //
-        // TODO haru 同じgetがだいぶ繰り返されてコードが膨れて少々みづらいので... (2026/08/19)
+        // TODO  done haru 同じgetがだいぶ繰り返されてコードが膨れて少々みづらいので... (2026/08/19)
         // 例えば、Member は member変数として抽出してみてください。
-        // e.g. 
+        // e.g.
         //  ... = purchase.getMember().get().getMemberName();
         //  ↓
         //  Member member = purchase.getMember().get();
@@ -347,16 +349,21 @@ if (!statusCode.equals(previousStatusCode)) {
         // VSCodeで、purchase.getMember().get()の部分を選択して、command + . (dot) を押して、
         // "Extract to local variable" とか使うと、比較的簡単にできるのでぜひ試してみてください。
         //
-        String memberName = purchase.getMember().get().getMemberName();
-        String memberStatusName = purchase.getMember().get().getMemberStatus().get().getMemberStatusName();
+        // 0824修正メモ: Member member = purchase.getMember().get();を追加して、memberNameとmemberStatusNameの取得を変更した
+        Member member = purchase.getMember().get();
+        String memberName = member.getMemberName();
+        String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
         String productName = purchase.getProduct().get().getProductName();
         log(memberName, memberStatusName, productName);
 
         // 購入に紐づく会員の生年月日が存在することをアサート
-        // TODO haru assertNotNull()というnullチェック専用のメソッドがあるのでそちらを使ってみましょう (2026/08/19)
-        assertTrue(purchase.getMember().get().getBirthdate() != null);
+        // TODO done done haru assertNotNull()というnullチェック専用のメソッドがあるのでそちらを使ってみましょう (2026/08/19)
+        //assertTrue(member.getBirthdate() != null);
+        // 0824修正メモ: assertNotNull()を使ってnullチェック。否定でアサートしなくても良くなった。
+        assertNotNull(member.getBirthdate());
         }
     }
+
 
     /*
     Goldストレッチ⑥
@@ -382,11 +389,13 @@ if (!statusCode.equals(previousStatusCode)) {
         // Act
         // 複数指定になるので、Listで取得する
         ListResultBean<Member> memberList = memberBhv.selectList(cb -> {
-            // 会員ステータスも一緒に取得するためにセットする(select句たち)
+            // select句たち
+            // 会員ステータスも一緒に取得するためにセットする
             cb.setupSelect_MemberStatus();
             // 会員ステータスは名称だけあれば良いので、名称カラムだけをspecify
             // specifyについてhttps://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/specify/specifycolumn.html
             cb.specify().specifyMemberStatus().columnMemberStatusName();
+            // where句たち
             // 会員名称に "vi" を含む会員を検索するための条件を設定
             cb.query().setMemberName_LikeSearch(containsStr, op -> op.likeContain());
             // 2005年10月の1日から3日までに 正式会員になった会員を検索するための条件を設定
@@ -404,9 +413,13 @@ if (!statusCode.equals(previousStatusCode)) {
             log(memberName, officialMemberDatetime, memberStatusName);
 
             // 会員ステータスがコードと名称だけが取得されていることをアサート
-            assertTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
-            assertTrue(member.getMemberStatus().get().getMemberStatusName() != null);
-            assertTrue(member.getMemberStatus().get().getDisplayOrder() == null);
+            // 0824メモ: assertTrueの方をassertNotNullに変えて、OptionalEntityがemptyじゃないことをチェックするようにした
+            // assertTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
+            // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
+            // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
+            assertNotNull(member.getMemberStatus().get().getMemberStatusCode());
+            assertNotNull(member.getMemberStatus().get().getMemberStatusName());
+            assertNull(member.getMemberStatus().get().getDisplayOrder());
 
             // 会員の正式会員日時が指定された条件の範囲内であることをアサート
             assertTrue(officialMemberDatetime.compareTo(targetStartDatetime) >= 0);
