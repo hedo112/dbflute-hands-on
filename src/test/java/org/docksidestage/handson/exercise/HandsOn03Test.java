@@ -379,8 +379,16 @@ if (!statusCode.equals(previousStatusCode)) {
     - 会員の正式会員日時が指定された条件の範囲内であることをアサート
      */
     public void test_officialMemberDatetimeBetween20051001And20051003() throws Exception {
+        // TODO haru UnitTestを実行すると例外で落ちてしまいます by jflute (2026/08/25)
         // Arrange
         // 絞りたい日時を用意 (FORMALIZED_DATETIMEはLocalDateTime型なので、最初からLocalDateTimeで作る)
+        // TODO haru [軽い提案] Start/End ではなく Begin/End の方を使うのはどうでしょう？ (2026/08/25)
+        // ぼくの好みもありますが、リーダブルコードでは Begin/End が紹介されているようなので合わせてもいいかなと、
+        // // 【リーダブルコード】リーダブルコード第３・４章を読んでみた
+        // https://zenn.dev/student_blog/articles/b4875973209a35
+        // // コードを分かりやすく・相手に理解できるようにするテクニック【リーダブルコード】
+        // https://qiita.com/Daara_y/items/2ad4c13ca82f2af83bee
+        // ぼくは単純に変数とかメソッドとかカラムとかがアルファベット順で並べた時にBeginが先に来るので直感的という理由ですが^^
         LocalDateTime targetStartDatetime = LocalDateTime.of(2005, 10, 1, 0, 0);
         LocalDateTime targetEndDatetime = LocalDateTime.of(2005, 10, 3, 0, 0);
         // 会員名称に "vi" を含む会員を検索するための変数を用意
@@ -403,6 +411,15 @@ if (!statusCode.equals(previousStatusCode)) {
         });
 
         // Assert
+        // _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+        // TODO haru 細かいですが、ここに空チェックと書いて、直後に空行もないと、forも合わせて空チェック？って見えてしまうので... by jflute (2026/08/25)
+        // このくらいであれば、横のスラスラコメントに書くのはどうでしょう？
+        // e.g.
+        //  assertFalse(memberList.isEmpty()); // 空チェック
+        //  for (Member member : memberList) {
+        //  ...
+        // 長いコメントになるときは使えませんが、横のスラスラコメントうまく活用してみてください。
+        // _/_/_/_/_/_/_/_/
         // 空チェック
         assertFalse(memberList.isEmpty());
         for (Member member : memberList) {
@@ -417,15 +434,20 @@ if (!statusCode.equals(previousStatusCode)) {
             // assertTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
             // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
             // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
+            // TODO haru ここも、MemberStatus の get は、変数に抽出してコードをすっきりさせましょう by jflute (2026/08/25)
+            // 該当箇所を選択して command+. (ドット) でクイックfixのメニューを出して、Extract to local variable
+            // (replace all じゃない方が安定するのでそっちの方が無難。他の行はコピペで対応)
             assertNotNull(member.getMemberStatus().get().getMemberStatusCode());
             assertNotNull(member.getMemberStatus().get().getMemberStatusName());
             assertNull(member.getMemberStatus().get().getDisplayOrder());
-
+            
             // 会員の正式会員日時が指定された条件の範囲内であることをアサート
             assertTrue(officialMemberDatetime.compareTo(targetStartDatetime) >= 0);
             assertTrue(officialMemberDatetime.compareTo(targetEndDatetime) <= 0);
         }
     }
+    // #1on1: $質問: lessThanとかgreaterThanとかわかりにくいんですけど(怒) by haru (2026/08/25)
+    // (怯えながら...) まあ慣れもあるけど、ぼくの場合は &gt; &lt; で鍛えられた。HTMLにもあるくらいなのでわりと汎用的ですごめんなさい by jflute
 
     /*
     Platinumストレッチ⑦
