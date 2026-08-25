@@ -440,7 +440,7 @@ if (!statusCode.equals(previousStatusCode)) {
             assertNotNull(member.getMemberStatus().get().getMemberStatusCode());
             assertNotNull(member.getMemberStatus().get().getMemberStatusName());
             assertNull(member.getMemberStatus().get().getDisplayOrder());
-            
+
             // 会員の正式会員日時が指定された条件の範囲内であることをアサート
             assertTrue(officialMemberDatetime.compareTo(targetStartDatetime) >= 0);
             assertTrue(officialMemberDatetime.compareTo(targetEndDatetime) <= 0);
@@ -462,6 +462,11 @@ if (!statusCode.equals(previousStatusCode)) {
    public void test_purchaseWithinOneWeek() throws Exception {
     // Arrange
     // 特定のものでもないので、特に定義は必要なさそう
+    // 0825memo: columQueryする中で長くなりそうなのでやっぱり定義する
+    // 正式会員になった日
+    SpecifyQuery<PurchaseCB> officialMemberDatetime =  colCB -> colCB.specify().specifyMember().columnFormalizedDatetime();
+    // 購入日時
+    SpecifyQuery<PurchaseCB> purchaseDatetime =  colCB -> colCB.specify().columnPurchaseDatetime();
 
     //Act
     // 複数指定になるので、Listで取得する
@@ -477,10 +482,31 @@ if (!statusCode.equals(previousStatusCode)) {
         cb.query().queryMember().setFormalizedDatetime_IsNotNull();
         // 購入日時が正式会員になってから一週間以内であることを条件に加える
         // 0825の宿題
+        // 考え方
+        // 正式会員になった日　＜= 商品購入日時　<= 正式会員になった日 + 7日(時間込み)
+        // ex) 2026-08-24 21:00に会員になり、 そこから2026-08-31 21:00までに商品を購入したものを検索
+        // colum同士を比較したいときは、ColumnQueryを使うらしい
+        // https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/query/columnquery.html
+        // 比較するときの不等号: ConditionKey
+        // https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/about.html
+        // <=, >=, <, >,とかで書けない
+        // (A)GreaterThan(B): A > B
+        // (A)GreaterEqual(B): A >= B
+        // (A)LessThan(B): A < B
+        // (A)LessEqual(B): A <= B
+        // 購入>=正式会員日時
+        cb.columnQuery(officialMemberDatetime).lessEqual(purchaseDatetime);
+        cb.columnQuery(purchaseDatetime).lessEqual(officialMemberDatetime.plusDays(7));
     });
 
-    // Assert
-    // 空チェック
-    assertFalse(purchaseList.isEmpty());
+        // Assert
+        // 空チェック
+        assertFalse(purchaseList.isEmpty());
+        for (Purchase purchase : purchaseList) {
+            // 上位の商品カテゴリ名が取得できていることをアサート
+            assertNotNull(purchase.getProduct().get().getProductCategory().get().getProductCategorySelf().get().getProductCategoryName());
+            // 購入日時が正式会員になってから一週間以内であることをアサート
+            assertTrue(purchase.getPurchaseDatetime().compareTo(purchase.getMember().get().getFormalizedDatetime()) >= 0);
+            assertTrue(purchase.getPurchaseDatetime().compareTo(purchase.getMember().get().getFormalizedDatetime().plusDays(7)) <= 0);
 }
 }
