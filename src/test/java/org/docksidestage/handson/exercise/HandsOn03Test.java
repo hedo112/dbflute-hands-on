@@ -4,6 +4,7 @@ package org.docksidestage.handson.exercise;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -16,6 +17,7 @@ import org.docksidestage.handson.dbflute.exbhv.MemberSecurityBhv;
 import org.docksidestage.handson.dbflute.exentity.Member;
 import org.docksidestage.handson.dbflute.exentity.MemberSecurity;
 import org.docksidestage.handson.dbflute.exentity.MemberStatus;
+import org.docksidestage.handson.dbflute.exentity.MemberWithdrawal;
 import org.docksidestage.handson.unit.UnitContainerTestCase;
 import org.docksidestage.handson.dbflute.exbhv.PurchaseBhv;
 import org.docksidestage.handson.dbflute.exentity.Purchase;
@@ -509,6 +511,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // Act
         // 複数指定になるので、Listで取得する
         ListResultBean<Purchase> purchaseList = purchaseBhv.selectList(cb -> {
+            // select句たち
             // 会員と会員ステータス、会員セキュリティ情報も一緒に取得するためにセットする(select句たち)
             cb.setupSelect_Member().withMemberStatus();
             cb.setupSelect_Member().withMemberSecurityAsOne();
@@ -516,6 +519,8 @@ public class HandsOn03Test extends UnitContainerTestCase {
             cb.setupSelect_Product().withProductStatus();
             // 商品カテゴリと、さらにその上位の商品カテゴリーも一緒に取得するためにセットする(select句たち)
             cb.setupSelect_Product().withProductCategory().withProductCategorySelf();
+
+            // where句たち
             // 会員が正式会員になっていることを条件に設定
             cb.query().queryMember().setFormalizedDatetime_IsNotNull();
             // 購入日時が正式会員になってから一週間以内であることを条件に加える
@@ -574,7 +579,75 @@ public class HandsOn03Test extends UnitContainerTestCase {
     */
     public void test_birthdateBefore19740101OrNull() throws Exception {
         // Arrange
+        String targetBirthdate = "1974/01/01"; // 絞り込むための起点の日にちをここで用意する
+        // スラッシュ区切りでの文字列をパースする際は、java.time.format.DateTimeFormatterを使うと良さそう
+        // LocalDate.parse()は、デフォルトではyyyy-MM-dd形式の文字列しかパースできないらしい
+        // memo: 日付について解説してもらった　https://ja.wikipedia.org/wiki/ISO_8601
+        LocalDate targetBirthdateLocalDate = LocalDate.parse(targetBirthdate,
+                DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        // 際どいテストデータの作成
+        // 際どい　= 境界値テストみたいな話？s
+        // 1974年12月31日生まれの人、1975年1月1日生まれの人を作る
+        adjustMemberBirthdate(1, LocalDate.of(1974, 12, 31)); // 1974年12月31日生まれの人を作る
+        adjustMemberBirthdate(9, LocalDate.of(1975, 1, 1)); // 1975年1月1日生まれの人を作る
+
         // Act
-        // Arrange
+        // 複数指定になるため、List型で取得する
+        ListResultBean<Member> memberList = memberBhv.selectList(cb -> {
+            // 会員ステータス名称、リマインダ質問と回答、退会理由入力テキストを取得するためにセットする(select句たち)
+            cb.setupSelect_MemberStatus();
+            cb.setupSelect_MemberSecurityAsOne();
+            cb.setupSelect_MemberWithdrawalAsOne();
+            // where句たち
+            // 若い順だが生年月日が null のデータを最初に並べる
+            cb.query().addOrderBy_Birthdate_Asc().withNullsFirst();
+            // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員を検索するための条件を設定
+            cb.orScopeQuery(orCB -> {
+                orCB.query().setBirthdate_FromTo(null, targetBirthdateLocalDate, op -> op.compareAsYear()
+                        .allowOneSide());
+                orCB.query().setBirthdate_IsNull();
+            });
+        });
+
+        // Assert
+        assertFalse(memberList.isEmpty()); // 空チェック
+
+        // 検索で含まれるはずのきわどいデータ (1974/12/31生まれの会員ID1) が検索されてることをアサート
+        boolean containsBorderMember = false;
+        for (Member member : memberList) {
+            if (member.getMemberId().equals(1)) {
+                containsBorderMember = true;
+            }
+        }
+        assertTrue(containsBorderMember);
+
+        // 生まれが不明の会員が先頭になっていることをアサート
+        assertNull(memberList.get(0).getBirthdate());
+
+        for (Member member : memberList) {
+            // 会員ステータス名称、リマインダ質問と回答、退会理由入力テキストをログに出力
+            String memberStatusName = member.getMemberStatus().map(status -> status.getMemberStatusName())
+                    .orElse("none");
+            String reminderQuestion = member.getMemberSecurityAsOne().map(security -> security.getReminderQuestion())
+                    .orElse("none");
+            String reminderAnswer = member.getMemberSecurityAsOne().map(security -> security.getReminderAnswer())
+                    .orElse("none");
+            String withdrawalReasonInputText = member.getMemberWithdrawalAsOne()
+                    .map(withdrawal -> withdrawal.getWithdrawalReasonInputText()).orElse("none");
+            log(memberStatusName, reminderQuestion, reminderAnswer, withdrawalReasonInputText);
+
+            // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員であることをアサート
+            assertTrue(member.getBirthdate() == null || member.getBirthdate().getYear() <= targetBirthdateLocalDate.getYear());
+        }
+    }
+
+    private void adjustMemberBirthdate(int memberId, LocalDate birthdate) {
+        Member member = new Member();
+        member.setMemberId(memberId);
+        member.setBirthdate(birthdate);
+        memberBhv.updateNonstrict(member);
+        // 0912memo
+        // updateNonstric()について
+        // 更新したいカラムだけをセットして、主キーを指定してupdateすることができる
     }
 }
