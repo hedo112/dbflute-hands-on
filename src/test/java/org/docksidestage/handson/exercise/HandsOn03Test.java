@@ -650,4 +650,61 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // updateNonstric()について
         // 更新したいカラムだけをセットして、主キーを指定してupdateすることができる
     }
+
+    /*
+     * Platinumストレッチ⑨
+     * 2005年6月に正式会員になった会員を先に並べて生年月日のない会員を検索
+     * - 画面からの検索条件で2005年6月がリクエストされたと想定
+     * - Arrange で String の "2005/06/01" を一度宣言してから日付クラスに変換
+     * - その日付クラスの値を、(日付移動などせず)そのまま使って検索条件を実現
+     * - 第二ソートキーは会員IDの降順
+     * - 検索された会員の生年月日が存在しないことをアサート
+     * - 2005年6月に正式会員になった会員が先に並んでいることをアサート (先頭だけじゃなく全体をチェック)
+     */
+    // 考え方→2005年6月に正式会員になる=2005/06/01から2006/06/30までの間に正式会員になった会員を検索する
+    public void test_formalizedMemberDatetimeIn200506AndBirthdateIsNull() throws Exception {
+        // Arrange
+        String targetFormalizedDate = "2005/06/01"; // 絞り込むための起点の日にちをここで用意する
+        LocalDate targetFormalizedLocalDate = LocalDate.parse(targetFormalizedDate, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+
+        // Act
+        // 複数指定になるため、List型で取得する
+        ListResultBean<Member> memberList = memberBhv.selectList(cb -> {
+            // where句たち
+            // 生年月日のない会員を検索するための条件を設定
+            cb.query().setBirthdate_IsNull();
+            // order by句たち
+            // 2005年6月に正式会員になった会員を先に並べる
+            // (targetFormalizedLocalDateをfrom/to両方に渡し、compareAsMonthでその月の範囲に変換してもらう)
+            cb.query().addOrderBy_FormalizedDatetime_Asc().withManualOrder(op -> {
+                op.when_FromTo(targetFormalizedLocalDate, targetFormalizedLocalDate, opt -> opt.compareAsMonth());
+            });
+            // 第二ソートキーは会員IDのd降順
+            cb.query().addOrderBy_MemberId_Desc();
+        });
+
+        // Assert
+        assertFalse(memberList.isEmpty()); // 空チェック
+
+        // 検索された会員の生年月日が存在しないことをアサート
+        for (Member member : memberList) {
+            assertNull(member.getBirthdate());
+        }
+
+        // 2005年6月に正式会員になった会員が先に並んでいることをアサート (先頭だけじゃなく全体をチェック)
+        // 一度「対象月ではない会員」が出てきたら、それ以降に「対象月の会員」が現れないことを確認する
+        boolean sawOutOfTargetMonth = false;
+        for (Member member : memberList) {
+            LocalDateTime formalizedDatetime = member.getFormalizedDatetime();
+            boolean inTargetMonth = formalizedDatetime != null
+                    && formalizedDatetime.getYear() == targetFormalizedLocalDate.getYear()
+                    && formalizedDatetime.getMonthValue() == targetFormalizedLocalDate.getMonthValue();
+            if (inTargetMonth) {
+                assertFalse(sawOutOfTargetMonth); // 対象月じゃない会員より後に対象月の会員が来たらNG
+            } else {
+                sawOutOfTargetMonth = true;
+            }
+        }
+    }
+
 }
