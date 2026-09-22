@@ -303,7 +303,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // where句たち
             // 会員の生年月日が存在することを条件に加える
             cb.query().queryMember().setBirthdate_IsNotNull();
-            // TODO  done haru select句たち、where句たち、のコメントがあるから "order by句たち" も欲しいですね(^^ (2026/08/19)
+            // done haru select句たち、where句たち、のコメントがあるから "order by句たち" も欲しいですね(^^ (2026/08/19)
             //0824修正メモ: order by句たちのコメントを追加した
             // order by句たち
             // 購入日時の降順、購入価格の降順、商品IDの昇s順、会員IDの昇順で並べる
@@ -338,7 +338,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
 
             // 会員名称と会員ステータス名称と商品名を取得する(ログ出力)
             //
-            // TODO  done haru 同じgetがだいぶ繰り返されてコードが膨れて少々みづらいので... (2026/08/19)
+            // done haru 同じgetがだいぶ繰り返されてコードが膨れて少々みづらいので... (2026/08/19)
             // 例えば、Member は member変数として抽出してみてください。
             // e.g.
             //  ... = purchase.getMember().get().getMemberName();
@@ -351,6 +351,8 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // "Extract to local variable" とか使うと、比較的簡単にできるのでぜひ試してみてください。
             //
             // 0824修正メモ: Member member = purchase.getMember().get();を追加して、memberNameとmemberStatusNameの取得を変更した
+        	// #1on1: 大事な行、ここだとlog()で何を出しているのか？がパッとわかるようにが大事 (2026/09/22)
+        	// 行はすべてフラットな扱いではなく、ここぞって行は力を入れて見やすくする。
             Member member = purchase.getMember().get();
             String memberName = member.getMemberName();
             String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
@@ -358,13 +360,14 @@ public class HandsOn03Test extends UnitContainerTestCase {
             log(memberName, memberStatusName, productName);
 
             // 購入に紐づく会員の生年月日が存在することをアサート
-            // TODO done done haru assertNotNull()というnullチェック専用のメソッドがあるのでそちらを使ってみましょう (2026/08/19)
+            // done done haru assertNotNull()というnullチェック専用のメソッドがあるのでそちらを使ってみましょう (2026/08/19)
             //assertTrue(member.getBirthdate() != null);
             // 0824修正メモ: assertNotNull()を使ってnullチェック。否定でアサートしなくても良くなった。
             assertNotNull(member.getBirthdate());
         }
     }
 
+    // #1on1: 日常会話でのx日までのブレのお話 (2026/09/22)
     /*
     Goldストレッチ⑥
     2005年10月の1日から3日までに正式会員になった会員を検索
@@ -377,14 +380,23 @@ public class HandsOn03Test extends UnitContainerTestCase {
     - 会員名称と正式会員日時と会員ステータス名称をログに出力
     - 会員ステータスがコードと名称だけが取得されていることをアサートd
     - 会員の正式会員日時が指定された条件の範囲内であることをアサート
+    
+※修行++: 実装できたら、こんどはスーパークラスのメソッド
+adjustMember_FormalizedDatetime_...() を使って、
+10月1日ジャスト(時分秒なし)の正式会員日時を持つ会員データを作成してテスト実行してみましょう。
+もともと一件しかなかった検索結果が「二件」になるはずです。 
      */
+    // TODO haru 境界値のテストのために、↑のadjustメソッドを使ってみましょう by jflute (2026/09/22)
+    // デフォルトで入っているデータは「ある程度のケースを表現したデータ」なので、
+    // 既存のデータを一時的に修正(DB更新)して、都合の良いデータに書き換えてテストを実行すると良い。
+    // (「デフォルトのデータ + その場更新で作るデータ」のハイブリッド)
     public void test_officialMemberDatetimeBetween20051001And20051003() throws Exception {
-        // TODO done haru UnitTestを実行すると例外で落ちてしまいます by jflute (2026/08/25)
+        // done haru UnitTestを実行すると例外で落ちてしまいます by jflute (2026/08/25)
         // 0901修正メモ: アサートする時に、specifyで指定していないカラムを取得しようとしていたので、例外処理になってしまっていた。（assertNull(member.getMemberStatus().get().getDisplayOrder());）
         // 指定されていないカラムかどうかみたいなことを確認したいのでカラム設定の履歴にdisplayOrder（今回絞り込みが不要になっているもの）が含まれていないことを確認するように変更した
         // Arrange
         // 絞りたい日時を用意 (FORMALIZED_DATETIMEはLocalDateTime型なので、最初からLocalDateTimeで作る)
-        // TODO done haru [軽い提案] Start/End ではなく Begin/End の方を使うのはどうでしょう？ (2026/08/25)
+        // done haru [軽い提案] Start/End ではなく Begin/End の方を使うのはどうでしょう？ (2026/08/25)
         // ぼくの好みもありますが、リーダブルコードでは Begin/End が紹介されているようなので合わせてもいいかなと、
         // // 【リーダブルコード】リーダブルコード第３・４章を読んでみた
         // https://zenn.dev/student_blog/articles/b4875973209a35
@@ -417,7 +429,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
 
         // Assert
         // _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-        // TODO done haru 細かいですが、ここに空チェックと書いて、直後に空行もないと、forも合わせて空チェック？って見えてしまうので... by jflute (2026/08/25)
+        // done haru 細かいですが、ここに空チェックと書いて、直後に空行もないと、forも合わせて空チェック？って見えてしまうので... by jflute (2026/08/25)
         // このくらいであれば、横のスラスラコメントに書くのはどうでしょう？
         // e.g.
         //  assertFalse(memberList.isEmpty()); // 空チェック
@@ -446,6 +458,9 @@ public class HandsOn03Test extends UnitContainerTestCase {
             assertNotNull(member.getMemberStatus().get().getMemberStatusName());
             assertFalse(member.getMemberStatus().get().myspecifiedProperties().contains("displayOrder"));
             // assertNull(member.getMemberStatus().get().getDisplayOrder()); ここが原因で例外になってしまっていた
+            // #1on1: specifyがチェックできる仕組み、とその理由 (2026/09/22)
+            // 仕組みへの意識。
+            // FunCustodialクラスとは？ FunCustodialとは？
             //
             /*
              * Non-specified column was accessed.
@@ -497,11 +512,23 @@ public class HandsOn03Test extends UnitContainerTestCase {
     */
     //1週間の定義はどうするか？
     //時間までみる。かっきり、7日後の同時刻まで
+    // TODO haru これをやってみてください by jflute (2026/09/22)
+    /*
+※修行++: 実装できたら、こんどはスーパークラスのメソッド
+adjustPurchase_PurchaseDatetime_...() を呼び出し、
+調整されたデータによって検索結果が一件増えるかどうか確認してみましょう。
+もし増えないなら、なぜ増えないのか？しっかり分析して、
+コード上のコメントで分析結果を書き出してみましょう。 
+そして、一週間以内という解釈を無理のない程度に変えて、増えるようにしてみましょう。
+もともと増えたのであれば、なぜ増えたのか？が把握できていたらOKです。 
+     */
     public void test_purchaseWithinOneWeek() throws Exception {
-
         // Arrange
         // 特定のものでもないので、特に定義は必要なさそう
         // 0825memo: columQueryする中で長くなりそうなのでやっぱり定義する
+    	// #1on1: こう言うふうに関数化したやり方も見やすくていいね。 (2026/09/22)
+    	// TODO haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
+    	// (本当に、FormalizedDatetimeとちょっとニュアンス違う概念が生まれたのであれば良いけど)
         // 正式会員になった日
         SpecifyQuery<PurchaseCB> officialMemberDatetime = colCB -> colCB.specify().specifyMember()
                 .columnFormalizedDatetime();
@@ -521,7 +548,17 @@ public class HandsOn03Test extends UnitContainerTestCase {
             cb.setupSelect_Product().withProductCategory().withProductCategorySelf();
 
             // where句たち
+            // _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+            // #1on1: 確かに正式会員になってからの購入して取ってないので、正式会員にはなっているだろう (2026/09/22)
+            // 今現在正式会員かどうかは問われていないので、退会会員になっちゃってる会員の購入もあるかも。
+            // TODO haru なので、↓のコメントに書いてある条件は設定してはいけない。 by jflute (2026/09/22)
+            // ただ、実際の実装は、↓のコメント通りに実装されているわけではないので、致命的な業務ミスにはなっていない。
+            // でも冗長ではあるので削除した方が良い。
+            // (つまり、二つツッコミがあった。コメント上の条件の話と、実際のコードの話)
+            // _/_/_/_/_/_/_/_/
             // 会員が正式会員になっていることを条件に設定
+            //  → #1on1 実際には、正式会員日時が存在するかどうか？という条件になっている (2026/09/22)
+            //    正式会員日時が存在してたとしても、現在正式会員かどうかはわからない。
             cb.query().queryMember().setFormalizedDatetime_IsNotNull();
             // 購入日時が正式会員になってから一週間以内であることを条件に加える
             // 0825の宿題
@@ -542,6 +579,10 @@ public class HandsOn03Test extends UnitContainerTestCase {
             //cb.columnQuery(purchaseDatetime).lessEqual(officialMemberDatetime.plusDays(7));
             cb.columnQuery(purchaseDatetime).lessEqual(officialMemberDatetime).convert(op -> op.addDay(7));
             // plusDaysかと思ったけど、convertでaddDayを使うのが正しいらしい
+            // #1on1: 関数に ...Datetime って名前を付けちゃったもんだから、ついつい引きづられて plusDays() しようとしちゃったかな (2026/09/22)
+            // TODO haru なので、officialMemberDatetime → officialMemberDatetimeCol とか by jflute (2026/09/22)
+            // 利尻昆布のお話。Wikipedia, Github。
+            // #1on1: plusするにしてもここではない。Datetimeにplusするのは固定値イメージになっちゃう (2026/09/22)
         });
 
         // Assert
