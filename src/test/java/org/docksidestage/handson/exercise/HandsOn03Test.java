@@ -624,6 +624,7 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
         // スラッシュ区切りでの文字列をパースする際は、java.time.format.DateTimeFormatterを使うと良さそう
         // LocalDate.parse()は、デフォルトではyyyy-MM-dd形式の文字列しかパースできないらしい
         // memo: 日付について解説してもらった　https://ja.wikipedia.org/wiki/ISO_8601
+        // TODO haru 細かいけど、単に targetBirthdate だけでもいいかなと。Birthdate に日付型であるニュアンスが含まれているので by jflute (2026/09/22)
         LocalDate targetBirthdateLocalDate = LocalDate.parse(targetBirthdate,
                 DateTimeFormatter.ofPattern("yyyy/MM/dd"));
         // 際どいテストデータの作成
@@ -639,9 +640,12 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
             cb.setupSelect_MemberStatus();
             cb.setupSelect_MemberSecurityAsOne();
             cb.setupSelect_MemberWithdrawalAsOne();
+            // TODO haru "where句たち" の中に、"order by句たち" が含まれてしまっている by jflute (2026/09/22)
             // where句たち
             // 若い順だが生年月日が null のデータを最初に並べる
             cb.query().addOrderBy_Birthdate_Asc().withNullsFirst();
+            // TODO haru [いいね] DBFluteのFromToOptionの使い方完璧 by jflute (2026/09/22)
+            // TODO haru [あどばいす] 一応、FromToOptionを使えば、orScopeQuery()を使わないで実現することもできる by jflute (2026/09/22)
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員を検索するための条件を設定
             cb.orScopeQuery(orCB -> {
                 orCB.query().setBirthdate_FromTo(null, targetBirthdateLocalDate, op -> op.compareAsYear()
@@ -653,6 +657,8 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
         // Assert
         assertFalse(memberList.isEmpty()); // 空チェック
 
+        // TODO haru UnitTestとはいえ、会員ID:1さんが1974/12/31の際どいデータであることを変数名とかで表現したいね by jflute (2026/09/22)
+        // コメントで補足はしてくれているけど、member.getMemberId().equals(1) のコードだけ見るとなんのことやらとなってしまうので。
         // 検索で含まれるはずのきわどいデータ (1974/12/31生まれの会員ID1) が検索されてることをアサート
         boolean containsBorderMember = false;
         for (Member member : memberList) {
@@ -677,6 +683,7 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
                     .map(withdrawal -> withdrawal.getWithdrawalReasonInputText()).orElse("none");
             log(memberStatusName, reminderQuestion, reminderAnswer, withdrawalReasonInputText);
 
+            // TODO haru この行こそすっきり見やすくしたいところなので、member.getBirthdate()を変数にして欲しい by jflute (2026/09/22)
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員であることをアサート
             assertTrue(member.getBirthdate() == null || member.getBirthdate().getYear() <= targetBirthdateLocalDate.getYear());
         }
@@ -691,6 +698,7 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
         // updateNonstric()について
         // 更新したいカラムだけをセットして、主キーを指定してupdateすることができる
     }
+    // TODO jflute ここまでレビューした。続きはまた今度 (2026/09/22)
 
     /*
      * Platinumストレッチ⑨
