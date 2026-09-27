@@ -11,13 +11,11 @@ import java.util.Set;
 import javax.annotation.Resource;
 
 import org.dbflute.cbean.result.ListResultBean;
-import org.dbflute.optional.OptionalEntity;
 import org.docksidestage.handson.dbflute.exbhv.MemberBhv;
 import org.docksidestage.handson.dbflute.exbhv.MemberSecurityBhv;
 import org.docksidestage.handson.dbflute.exentity.Member;
 import org.docksidestage.handson.dbflute.exentity.MemberSecurity;
 import org.docksidestage.handson.dbflute.exentity.MemberStatus;
-import org.docksidestage.handson.dbflute.exentity.MemberWithdrawal;
 import org.docksidestage.handson.unit.UnitContainerTestCase;
 import org.docksidestage.handson.dbflute.exbhv.PurchaseBhv;
 import org.docksidestage.handson.dbflute.exentity.Purchase;
@@ -250,15 +248,17 @@ public class HandsOn03Test extends UnitContainerTestCase {
 
             //会員ステータスのコードを取得
             String statusCode = member.getMemberStatusCode();
-            // TODO edo previousStatusCodeの更新と並べて、事務手続きは寄せちゃった方が by jflute (2026/06/05)
-            //出てきた会員ステータスの種類を記録
-            memberStatusSet.add(statusCode);
             //ステータスが切り替わるところを回数としてカウント＝ステータス種類数となる
             if (!statusCode.equals(previousStatusCode)) {
                 switchCount++;
-                // TODO edo previousのニュアンスを1ループ前という解釈にして、ifの外に出した方が読み手は楽 by jflute (2026/06/05)
-                previousStatusCode = statusCode;
             }
+            // TODO done edo previousStatusCodeの更新と並べて、事務手続きは寄せちゃった方が by jflute (2026/06/05)
+            // 出てきた会員ステータスの種類を記録
+            memberStatusSet.add(statusCode);
+            // TODO done edo previousのニュアンスを1ループ前という解釈にして、ifの外に出した方が読み手は楽 by jflute (2026/06/05)
+            previousStatusCode = statusCode;
+            //0927memo
+            // memberStatusSet.add(statusCode);とpreviousStatusCode = statusCodeを並べて、ループの外に出した。
         }
         // 会員が会員ステータスごとに固まって並んでいることをアサート
         // 切り替わった数＝ステータスの種類数であることをアサートすれば、固まっていることの確認になる
@@ -380,11 +380,11 @@ public class HandsOn03Test extends UnitContainerTestCase {
     - 会員名称と正式会員日時と会員ステータス名称をログに出力
     - 会員ステータスがコードと名称だけが取得されていることをアサートd
     - 会員の正式会員日時が指定された条件の範囲内であることをアサート
-    
-※修行++: 実装できたら、こんどはスーパークラスのメソッド
-adjustMember_FormalizedDatetime_...() を使って、
-10月1日ジャスト(時分秒なし)の正式会員日時を持つ会員データを作成してテスト実行してみましょう。
-もともと一件しかなかった検索結果が「二件」になるはずです。 
+
+    ※修行++: 実装できたら、こんどはスーパークラスのメソッド
+    adjustMember_FormalizedDatetime_...() を使って、
+    10月1日ジャスト(時分秒なし)の正式会員日時を持つ会員データを作成してテスト実行してみましょう。
+    もともと一件しかなかった検索結果が「二件」になるはずです。
      */
     // TODO haru 境界値のテストのために、↑のadjustメソッドを使ってみましょう by jflute (2026/09/22)
     // デフォルトで入っているデータは「ある程度のケースを表現したデータ」なので、
@@ -442,22 +442,27 @@ adjustMember_FormalizedDatetime_...() を使って、
         for (Member member : memberList) {
             // 会員名称と正式会員日時と会員ステータス名称をログに出力
             String memberName = member.getMemberName();
-            LocalDateTime officialMemberDatetime = member.getFormalizedDatetime();
+            //0927修正メモ
+            //ここも元々のメソッド名がofficialになっていたため概念を揃えるためにformalizedMemberDatetimeに変更する
+            LocalDateTime formalizedMemberDatetime = member.getFormalizedDatetime();
+            MemberStatus memberStatus = member.getMemberStatus().get();
             String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
-            log(memberName, officialMemberDatetime, memberStatusName);
+            log(memberName, formalizedMemberDatetime,  memberStatusName);
 
             // 会員ステータスがコードと名称だけが取得されていることをアサート
             // 0824メモ: assertTrueの方をassertNotNullに変えて、OptionalEntityがemptyじゃないことをチェックするようにした
             // assertTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
             // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
             // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
-            // TODO haru ここも、MemberStatus の get は、変数に抽出してコードをすっきりさせましょう by jflute (2026/08/25)
+            // TODO done haru ここも、MemberStatus の get は、変数に抽出してコードをすっきりさせましょう by jflute (2026/08/25)
             // 該当箇所を選択して command+. (ドット) でクイックfixのメニューを出して、Extract to local variable
             // (replace all じゃない方が安定するのでそっちの方が無難。他の行はコピペで対応)
-            assertNotNull(member.getMemberStatus().get().getMemberStatusCode());
-            assertNotNull(member.getMemberStatus().get().getMemberStatusName());
-            assertFalse(member.getMemberStatus().get().myspecifiedProperties().contains("displayOrder"));
-            // assertNull(member.getMemberStatus().get().getDisplayOrder()); ここが原因で例外になってしまっていた
+            // 0927修正メモ
+            // memberStatus変数を用意して、member.getMemberStatus().get()の取得をまとめた
+            assertNotNull(memberStatus.getMemberStatusCode());
+            assertNotNull(memberStatus.getMemberStatusName());
+            assertFalse(memberStatus.myspecifiedProperties().contains("displayOrder"));
+            // assertNull(memberStatus.getDisplayOrder()); ここが原因で例外になってしまっていた
             // #1on1: specifyがチェックできる仕組み、とその理由 (2026/09/22)
             // 仕組みへの意識。
             // FunCustodialクラスとは？ FunCustodialとは？
@@ -495,8 +500,8 @@ adjustMember_FormalizedDatetime_...() を使って、
              */
 
             // 会員の正式会員日時が指定された条件の範囲内であることをアサート
-            assertTrue(officialMemberDatetime.toLocalDate().compareTo(targetBeginDatetime.toLocalDate()) >= 0);
-            assertTrue(officialMemberDatetime.toLocalDate().compareTo(targetEndDatetime.toLocalDate()) <= 0);
+            assertTrue(formalizedMemberDatetime.toLocalDate().compareTo(targetBeginDatetime.toLocalDate()) >= 0);
+            assertTrue(formalizedMemberDatetime.toLocalDate().compareTo(targetEndDatetime.toLocalDate()) <= 0);
         }
     }
     // #1on1: $質問: lessThanとかgreaterThanとかわかりにくいんですけど(怒) sby haru (2026/08/25)
@@ -514,23 +519,27 @@ adjustMember_FormalizedDatetime_...() を使って、
     //時間までみる。かっきり、7日後の同時刻まで
     // TODO haru これをやってみてください by jflute (2026/09/22)
     /*
-※修行++: 実装できたら、こんどはスーパークラスのメソッド
-adjustPurchase_PurchaseDatetime_...() を呼び出し、
-調整されたデータによって検索結果が一件増えるかどうか確認してみましょう。
-もし増えないなら、なぜ増えないのか？しっかり分析して、
-コード上のコメントで分析結果を書き出してみましょう。 
-そして、一週間以内という解釈を無理のない程度に変えて、増えるようにしてみましょう。
-もともと増えたのであれば、なぜ増えたのか？が把握できていたらOKです。 
+    ※修行++: 実装できたら、こんどはスーパークラスのメソッド
+    adjustPurchase_PurchaseDatetime_...() を呼び出し、
+    調整されたデータによって検索結果が一件増えるかどうか確認してみましょう。
+    もし増えないなら、なぜ増えないのか？しっかり分析して、
+    コード上のコメントで分析結果を書き出してみましょう。
+    そして、一週間以内という解釈を無理のない程度に変えて、増えるようにしてみましょう。
+    もともと増えたのであれば、なぜ増えたのか？が把握できていたらOKです。
      */
     public void test_purchaseWithinOneWeek() throws Exception {
         // Arrange
         // 特定のものでもないので、特に定義は必要なさそう
         // 0825memo: columQueryする中で長くなりそうなのでやっぱり定義する
     	// #1on1: こう言うふうに関数化したやり方も見やすくていいね。 (2026/09/22)
-    	// TODO haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
-    	// (本当に、FormalizedDatetimeとちょっとニュアンス違う概念が生まれたのであれば良いけど)
+    	// TODO done haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
+        // (本当に、FormalizedDatetimeとちょっとニュアンス違う概念が生まれたのであれば良いけど)
+        // 0927修正メモ
+        // 上記TODOと下のTODO(なので、officialMemberDatetime → oficialMemberDatetimeCol とか by jflute (2026/09/22))を踏まえて、
+        // officialMemberDatetimeからformalizedMemberDatetimeColに変数名を変更した.d
+        //
         // 正式会員になった日
-        SpecifyQuery<PurchaseCB> officialMemberDatetime = colCB -> colCB.specify().specifyMember()
+        SpecifyQuery<PurchaseCB> formalizedMemberDatetimeCol = colCB -> colCB.specify().specifyMember()
                 .columnFormalizedDatetime();
         // 購入日時
         SpecifyQuery<PurchaseCB> purchaseDatetime = colCB -> colCB.specify().columnPurchaseDatetime();
@@ -551,15 +560,17 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
             // _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
             // #1on1: 確かに正式会員になってからの購入して取ってないので、正式会員にはなっているだろう (2026/09/22)
             // 今現在正式会員かどうかは問われていないので、退会会員になっちゃってる会員の購入もあるかも。
-            // TODO haru なので、↓のコメントに書いてある条件は設定してはいけない。 by jflute (2026/09/22)
+            // TODO done haru なので、↓のコメントに書いてある条件は設定してはいけない。 by jflute (2026/09/22)
             // ただ、実際の実装は、↓のコメント通りに実装されているわけではないので、致命的な業務ミスにはなっていない。
             // でも冗長ではあるので削除した方が良い。
             // (つまり、二つツッコミがあった。コメント上の条件の話と、実際のコードの話)
+            // 0927修正メモ
+            // cb.query().queryMember().setFormalizedDatetime_IsNotNull();をコメントアウト
             // _/_/_/_/_/_/_/_/
             // 会員が正式会員になっていることを条件に設定
             //  → #1on1 実際には、正式会員日時が存在するかどうか？という条件になっている (2026/09/22)
             //    正式会員日時が存在してたとしても、現在正式会員かどうかはわからない。
-            cb.query().queryMember().setFormalizedDatetime_IsNotNull();
+            // cb.query().queryMember().setFormalizedDatetime_IsNotNull();
             // 購入日時が正式会員になってから一週間以内であることを条件に加える
             // 0825の宿題
             // 考え方
@@ -575,18 +586,20 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
             // (A)LessThan(B): A < B
             // (A)LessEqual(B): A <= B
             // 購入>=正式会員日時
-            cb.columnQuery(officialMemberDatetime).lessEqual(purchaseDatetime);
+            cb.columnQuery(formalizedMemberDatetimeCol).lessEqual(purchaseDatetime);
             //cb.columnQuery(purchaseDatetime).lessEqual(officialMemberDatetime.plusDays(7));
-            cb.columnQuery(purchaseDatetime).lessEqual(officialMemberDatetime).convert(op -> op.addDay(7));
+            cb.columnQuery(purchaseDatetime).lessEqual(formalizedMemberDatetimeCol).convert(op -> op.addDay(7));
             // plusDaysかと思ったけど、convertでaddDayを使うのが正しいらしい
             // #1on1: 関数に ...Datetime って名前を付けちゃったもんだから、ついつい引きづられて plusDays() しようとしちゃったかな (2026/09/22)
-            // TODO haru なので、officialMemberDatetime → officialMemberDatetimeCol とか by jflute (2026/09/22)
+            // TODO done haru なので、officialMemberDatetime → officialMemberDatetimeCol とか by jflute (2026/09/22)
+            // 0927修正メモ
+            // formalizedMemberDatetimeColに変数名を変更した
             // 利尻昆布のお話。Wikipedia, Github。
             // #1on1: plusするにしてもここではない。Datetimeにplusするのは固定値イメージになっちゃう (2026/09/22)
         });
 
         // Assert
-        assertFalse(purchaseList.isEmpty()); // 空チェックs
+        assertFalse(purchaseList.isEmpty()); // 空チェック
         for (Purchase purchase : purchaseList) {
             // 上位の商品カテゴリ名が取得できていることをアサート
             assertNotNull(purchase.getProduct().get().getProductCategory().get().getProductCategorySelf().get()
@@ -755,5 +768,4 @@ adjustPurchase_PurchaseDatetime_...() を呼び出し、
             }
         }
     }
-
 }
