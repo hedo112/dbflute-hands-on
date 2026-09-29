@@ -661,12 +661,19 @@ public class HandsOn03Test extends UnitContainerTestCase {
     */
     public void test_birthdateBefore19740101OrNull() throws Exception {
         // Arrange
-        String targetBirthdate = "1974/01/01"; // 絞り込むための起点の日にちをここで用意する
+        String targetBirthdateInput = "1974/01/01"; // 絞り込むための起点の日にちをここで用意する
         // スラッシュ区切りでの文字列をパースする際は、java.time.format.DateTimeFormatterを使うと良さそう
         // LocalDate.parse()は、デフォルトではyyyy-MM-dd形式の文字列しかパースできないらしい
         // memo: 日付について解説してもらった　https://ja.wikipedia.org/wiki/ISO_8601
-        // TODO haru 細かいけど、単に targetBirthdate だけでもいいかなと。Birthdate に日付型であるニュアンスが含まれているので by jflute (2026/09/22)
-        LocalDate targetBirthdateLocalDate = LocalDate.parse(targetBirthdate,
+        // TODO done haru 細かいけど、単に targetBirthdate だけでもいいかなと。Birthdate に日付型であるニュアンスが含まれているので by jflute (2026/09/22)
+        // 0929メモ
+        // targetBirthdateLocalDateをtargetBirthdateに変更した場合、StringのtargetBirthdateと被ってしまう。
+        // どっちかというと String targetBirthdate = "1974/01/01";の方が直感的にtargetBirthdate本体な気がするけど、パースした後のLocalDate版の方が本体になるのか？🧐
+        // String targetBirthdate = "1974/01/01";は一旦、String targetBirthdateInput =
+        // "1974/01/01";でおいてみる
+        // targetBirthdate -> targetBirthdateInput
+        // targetBirthdateLocaldate -> targetBirthdate
+        LocalDate targetBirthdate = LocalDate.parse(targetBirthdateInput,
                 DateTimeFormatter.ofPattern("yyyy/MM/dd"));
         // 際どいテストデータの作成
         // 際どい　= 境界値テストみたいな話？s
@@ -681,18 +688,23 @@ public class HandsOn03Test extends UnitContainerTestCase {
             cb.setupSelect_MemberStatus();
             cb.setupSelect_MemberSecurityAsOne();
             cb.setupSelect_MemberWithdrawalAsOne();
-            // TODO haru "where句たち" の中に、"order by句たち" が含まれてしまっている by jflute (2026/09/22)
+            // TODO done haru "where句たち" の中に、"order by句たち" が含まれてしまっている by jflute (2026/09/22)
+            // 0929修正メモ: 見出しコメントの下に種類の違う句が紛れていたので、where句たちとorder by句たちを分離した
             // where句たち
-            // 若い順だが生年月日が null のデータを最初に並べる
-            cb.query().addOrderBy_Birthdate_Asc().withNullsFirst();
+            // 0929メモ
+            // 一旦ここまで
             // TODO haru [いいね] DBFluteのFromToOptionの使い方完璧 by jflute (2026/09/22)
             // TODO haru [あどばいす] 一応、FromToOptionを使えば、orScopeQuery()を使わないで実現することもできる by jflute (2026/09/22)
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員を検索するための条件を設定
             cb.orScopeQuery(orCB -> {
-                orCB.query().setBirthdate_FromTo(null, targetBirthdateLocalDate, op -> op.compareAsYear()
+                orCB.query().setBirthdate_FromTo(null, targetBirthdate, op -> op.compareAsYear()
                         .allowOneSide());
                 orCB.query().setBirthdate_IsNull();
             });
+
+            // order by句たち
+            // 若い順だが生年月日が null のデータを最初に並べる
+            cb.query().addOrderBy_Birthdate_Asc().withNullsFirst();
         });
 
         // Assert
@@ -726,7 +738,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
 
             // TODO haru この行こそすっきり見やすくしたいところなので、member.getBirthdate()を変数にして欲しい by jflute (2026/09/22)
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員であることをアサート
-            assertTrue(member.getBirthdate() == null || member.getBirthdate().getYear() <= targetBirthdateLocalDate.getYear());
+            assertTrue(member.getBirthdate() == null || member.getBirthdate().getYear() <= targetBirthdate.getYear());
         }
     }
 
