@@ -386,10 +386,13 @@ public class HandsOn03Test extends UnitContainerTestCase {
     10月1日ジャスト(時分秒なし)の正式会員日時を持つ会員データを作成してテスト実行してみましょう。
     もともと一件しかなかった検索結果が「二件」になるはずです。
      */
-    // TODO haru 境界値のテストのために、↑のadjustメソッドを使ってみましょう by jflute (2026/09/22)
+    // TODO done haru 境界値のテストのために、↑のadjustメソッドを使ってみましょう by jflute (2026/09/22)
     // デフォルトで入っているデータは「ある程度のケースを表現したデータ」なので、
     // 既存のデータを一時的に修正(DB更新)して、都合の良いデータに書き換えてテストを実行すると良い。
     // (「デフォルトのデータ + その場更新で作るデータ」のハイブリッド)
+    // 修行++: 境界値(10/1ジャスト)の正式会員日時を持つ会員データを検証用に作成する
+    // 導入すると、会員名称に "vi" を含んだ2005/10/01 00:00:00.000の正式会員日時を持つ会員データが作成されるはず
+    // StojkovicとMijatovicの2件になった
     public void test_officialMemberDatetimeBetween20051001And20051003() throws Exception {
         // done haru UnitTestを実行すると例外で落ちてしまいます by jflute (2026/08/25)
         // 0901修正メモ: アサートする時に、specifyで指定していないカラムを取得しようとしていたので、例外処理になってしまっていた。（assertNull(member.getMemberStatus().get().getDisplayOrder());）
@@ -410,6 +413,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         LocalDateTime targetEndDatetime = LocalDateTime.of(2005, 10, 3, 0, 0);
         // 会員名称に "vi" を含む会員を検索するための変数を用意
         String containsStr = "vi";
+        adjustMember_FormalizedDatetime_FirstOnly(targetBeginDatetime, containsStr);
 
         // Act
         // 複数指定になるので、Listで取得する
@@ -508,13 +512,13 @@ public class HandsOn03Test extends UnitContainerTestCase {
     // (怯えながら...) まあ慣れもあるけど、ぼくの場合は &gt; &lt; で鍛えられた。HTMLにもあるくらいなのでわりと汎用的ですごめんなさい by jflute
 
     /*
-    Platinumストレッチ⑦
-    正式会員になってから一週間以内の購入を検索
-    - 会員と会員ステータス、会員セキュリティ情報も一緒に取得
-    - 商品と商品ステータス、商品カテゴリ、さらに上位の商品カテゴリも一緒に取得
-    - 上位の商品カテゴリ名が取得できていることをアサート
-    - 購入日時が正式会員になってから一週間以内であることをアサート
-    */
+     * Platinumストレッチ⑦
+     * 正式会員になってから一週間以内の購入を検索
+     * - 会員と会員ステータス、会員セキュリティ情報も一緒に取得
+     * - 商品と商品ステータス、商品カテゴリ、さらに上位の商品カテゴリも一緒に取得
+     * - 上位の商品カテゴリ名が取得できていることをアサート
+     * - 購入日時が正式会員になってから一週間以内であることをアサート
+     */
     //1週間の定義はどうするか？
     //時間までみる。かっきり、7日後の同時刻まで
     // TODO haru これをやってみてください by jflute (2026/09/22)
@@ -540,9 +544,25 @@ public class HandsOn03Test extends UnitContainerTestCase {
         //
         // 正式会員になった日
         SpecifyQuery<PurchaseCB> formalizedMemberDatetimeCol = colCB -> colCB.specify().specifyMember()
-                .columnFormalizedDatetime();
+        .columnFormalizedDatetime();
         // 購入日時
         SpecifyQuery<PurchaseCB> purchaseDatetime = colCB -> colCB.specify().columnPurchaseDatetime();
+        // 修行++: データを調整してくれるメソッドを用意する
+        adjustPurchase_PurchaseDatetime_fromFormalizedDatetimeInWeek();
+        // 0927memo
+        // adjustPurchase_PurchaseDatetime_fromFormalizedDatetimeInWeekを呼び出しても検索結果は増えなかった。
+        // なぜか？
+        // adjustPurchase_PurchaseDatetime_fromFormalizedDatetimeInWeekの中身を見てみた
+        // HandyDate handyDate = new HandyDate(adjustedMember.getFormalizedDatetime(),
+        // getUnitTimeZone());
+        // LocalDateTime movedDatetime = handyDate.addDay(7).moveToDayTerminal().moveToSecondJust().getLocalDateTime();
+        // handyDate.addDay(7).moveToDayTerminal().moveToSecondJust().getLocalDateTime();で7日間足した後に1日の最後の時間に調整されている
+        // 今回のクエリでは、7日後の同時刻までしか元々みてなかったため、7日後の168時間過ぎたものはヒットせず検索結果は増えなかったと考える。
+        // 増やすために
+        // 1週間の定義を変更する
+        // Before: 7日後の同時刻まで
+        // After: 7日後の23:59:59まで(8日後の00:00:00になったらアウト)
+
 
         // Act
         // 複数指定になるので、Listで取得する
@@ -588,8 +608,15 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // 購入>=正式会員日時
             cb.columnQuery(formalizedMemberDatetimeCol).lessEqual(purchaseDatetime);
             //cb.columnQuery(purchaseDatetime).lessEqual(officialMemberDatetime.plusDays(7));
-            cb.columnQuery(purchaseDatetime).lessEqual(formalizedMemberDatetimeCol).convert(op -> op.addDay(7));
-            // plusDaysかと思ったけど、convertでaddDayを使うのが正しいらしい
+            // 0929修正メモ
+            // Before: 7日後の同時刻まで (purchaseDatetime <= formalizedDatetime + 7日(時刻そのまま))
+            // After : 7日後の23:59:59まで、8日後の00:00:00になったらアウト
+            // (purchaseDatetime < formalizedDatetime + 8日を日付の始まり(00:00:00)に切り捨てた値)
+            // truncTime()で時刻を00:00:00に切り捨てられるので、lessEqualではなくlessThan(未満)にして
+            // 8日目の始まりより前ならOK=実質7日目の終わりまで含む、という条件にする
+            cb.columnQuery(purchaseDatetime).lessThan(formalizedMemberDatetimeCol)
+                    .convert(op -> op.addDay(8).truncTime());
+            // plusDaysかと思ったけど、convertでaddDayを使うのdが正しいらしい
             // #1on1: 関数に ...Datetime って名前を付けちゃったもんだから、ついつい引きづられて plusDays() しようとしちゃったかな (2026/09/22)
             // TODO done haru なので、officialMemberDatetime → officialMemberDatetimeCol とか by jflute (2026/09/22)
             // 0927修正メモ
@@ -605,10 +632,11 @@ public class HandsOn03Test extends UnitContainerTestCase {
             assertNotNull(purchase.getProduct().get().getProductCategory().get().getProductCategorySelf().get()
                     .getProductCategoryName());
             // 購入日時が正式会員になってから一週間以内であることをアサート
-            assertTrue(
-                    purchase.getPurchaseDatetime().compareTo(purchase.getMember().get().getFormalizedDatetime()) >= 0);
-            assertTrue(purchase.getPurchaseDatetime()
-                    .compareTo(purchase.getMember().get().getFormalizedDatetime().plusDays(7)) <= 0);
+            // 0929修正メモ: 上のクエリの解釈変更(7日目の終わりまで含む)に合わせてアサートも変更
+            LocalDateTime formalizedMemberDatetime = purchase.getMember().get().getFormalizedDatetime();
+            assertTrue(purchase.getPurchaseDatetime().compareTo(formalizedMemberDatetime) >= 0);
+            LocalDateTime eighthDayBegin = formalizedMemberDatetime.toLocalDate().plusDays(8).atStartOfDay();
+            assertTrue(purchase.getPurchaseDatetime().isBefore(eighthDayBegin));
         }
     }
 
