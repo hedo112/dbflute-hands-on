@@ -252,10 +252,10 @@ public class HandsOn03Test extends UnitContainerTestCase {
             if (!statusCode.equals(previousStatusCode)) {
                 switchCount++;
             }
-            // TODO done edo previousStatusCodeの更新と並べて、事務手続きは寄せちゃった方が by jflute (2026/06/05)
+            // done edo previousStatusCodeの更新と並べて、事務手続きは寄せちゃった方が by jflute (2026/06/05)
+            // done edo previousのニュアンスを1ループ前という解釈にして、ifの外に出した方が読み手は楽 by jflute (2026/06/05)
             // 出てきた会員ステータスの種類を記録
             memberStatusSet.add(statusCode);
-            // TODO done edo previousのニュアンスを1ループ前という解釈にして、ifの外に出した方が読み手は楽 by jflute (2026/06/05)
             previousStatusCode = statusCode;
             //0927memo
             // memberStatusSet.add(statusCode);とpreviousStatusCode = statusCodeを並べて、ループの外に出した。
@@ -386,7 +386,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
     10月1日ジャスト(時分秒なし)の正式会員日時を持つ会員データを作成してテスト実行してみましょう。
     もともと一件しかなかった検索結果が「二件」になるはずです。
      */
-    // TODO done haru 境界値のテストのために、↑のadjustメソッドを使ってみましょう by jflute (2026/09/22)
+    // done haru 境界値のテストのために、↑のadjustメソッドを使ってみましょう by jflute (2026/09/22)
     // デフォルトで入っているデータは「ある程度のケースを表現したデータ」なので、
     // 既存のデータを一時的に修正(DB更新)して、都合の良いデータに書き換えてテストを実行すると良い。
     // (「デフォルトのデータ + その場更新で作るデータ」のハイブリッド)
@@ -458,7 +458,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // assertTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
             // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
             // asserTrue(member.getMemberStatus().get().getMemberStatusCode() != null);
-            // TODO done haru ここも、MemberStatus の get は、変数に抽出してコードをすっきりさせましょう by jflute (2026/08/25)
+            // done haru ここも、MemberStatus の get は、変数に抽出してコードをすっきりさせましょう by jflute (2026/08/25)
             // 該当箇所を選択して command+. (ドット) でクイックfixのメニューを出して、Extract to local variable
             // (replace all じゃない方が安定するのでそっちの方が無難。他の行はコピペで対応)
             // 0927修正メモ
@@ -536,7 +536,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 特定のものでもないので、特に定義は必要なさそう
         // 0825memo: columQueryする中で長くなりそうなのでやっぱり定義する
     	// #1on1: こう言うふうに関数化したやり方も見やすくていいね。 (2026/09/22)
-    	// TODO done haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
+    	// done haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
         // (本当に、FormalizedDatetimeとちょっとニュアンス違う概念が生まれたのであれば良いけど)
         // 0927修正メモ
         // 上記TODOと下のTODO(なので、officialMemberDatetime → oficialMemberDatetimeCol とか by jflute (2026/09/22))を踏まえて、
@@ -562,7 +562,30 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 1週間の定義を変更する
         // Before: 7日後の同時刻まで
         // After: 7日後の23:59:59まで(8日後の00:00:00になったらアウト)
-
+        //
+        // #1on1: (2026/10/06)
+        // 10/3                    10/10     10/11
+        //  13h                      0h  13h   0h
+        //   |                       |    |    |
+        //   |       D               | I  |    | P
+        // A |                       |H  J|L   |O
+        //   |C                  E   G    K    N
+        //   B                      F|    |   M|
+        //   |                       |         |
+        //
+        // 期間の均等さよりも、何泊したのか？が重要なシステムもあるかも。
+        // lessEqual, lessThanの重要性
+        //
+        // 業務の内容によっては、重大な事故にもなりかねない。
+        // なので、日付系の厳密性というのは、開発者にとって大事なこと。
+        //
+        //
+        // #1on1: 漠然読みのお話、ふたたび (2026/10/06)
+        // 漠然読みは、頭の中で目次を作る行為に等しい。目次があれば当たりを見つけられる。
+        //
+        // $プルリクのレビューワーになったとき、ポイントがわからない、漠然読みがつながる？
+        // yes, 漠然読みで構造把握して全体像を見れる状態を最初に作ってレビューしてあげる。
+        // ログも同じ話。実行ログを一緒に追ってみた。
 
         // Act
         // 複数指定になるので、Listで取得する
