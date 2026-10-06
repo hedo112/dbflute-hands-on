@@ -521,13 +521,13 @@ public class HandsOn03Test extends UnitContainerTestCase {
      */
     //1週間の定義はどうするか？
     //時間までみる。かっきり、7日後の同時刻まで
-    // TODO haru これをやってみてください by jflute (2026/09/22)
+    // TODO done haru これをやってみてください by jflute (2026/09/22)
     /*
     ※修行++: 実装できたら、こんどはスーパークラスのメソッド
     adjustPurchase_PurchaseDatetime_...() を呼び出し、
     調整されたデータによって検索結果が一件増えるかどうか確認してみましょう。
     もし増えないなら、なぜ増えないのか？しっかり分析して、
-    コード上のコメントで分析結果を書き出してみましょう。
+    コード上のコメントで分析結果を書き出してみましょう。d
     そして、一週間以内という解釈を無理のない程度に変えて、増えるようにしてみましょう。
     もともと増えたのであれば、なぜ増えたのか？が把握できていたらOKです。
      */
@@ -678,7 +678,9 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 際どいテストデータの作成
         // 際どい　= 境界値テストみたいな話？s
         // 1974年12月31日生まれの人、1975年1月1日生まれの人を作る
-        adjustMemberBirthdate(1, LocalDate.of(1974, 12, 31)); // 1974年12月31日生まれの人を作る
+        // 1006修正メモ: 会員ID:1が「際どいデータ(境界値)」であることをコード上でも表現するため、変数化した
+        int borderMemberId = 1; // 境界値テスト用:1974/12/31生まれ(範囲内のギリギリ)
+        adjustMemberBirthdate(borderMemberId, LocalDate.of(1974, 12, 31)); // 1974年12月31日生まれの人を作る
         adjustMemberBirthdate(9, LocalDate.of(1975, 1, 1)); // 1975年1月1日生まれの人を作る
 
         // Act
@@ -695,12 +697,18 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // 一旦ここまで
             // TODO haru [いいね] DBFluteのFromToOptionの使い方完璧 by jflute (2026/09/22)
             // TODO haru [あどばいす] 一応、FromToOptionを使えば、orScopeQuery()を使わないで実現することもできる by jflute (2026/09/22)
+            // 1006memo
+            // FromToについて
+            // https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/query/fromto.html#date
+            // > FromToOptionを使えば、orScopeQuery()を使わないで実現することもできる
+            // これかー！　→ https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/query/fromto.html#orisnull
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員を検索するための条件を設定
-            cb.orScopeQuery(orCB -> {
-                orCB.query().setBirthdate_FromTo(null, targetBirthdate, op -> op.compareAsYear()
-                        .allowOneSide());
-                orCB.query().setBirthdate_IsNull();
-            });
+            // cb.orScopeQuery(orCB -> {
+            //     orCB.query().setBirthdate_FromTo(null, targetBirthdate, op -> op.compareAsYear()
+            //             .allowOneSide());
+            //     orCB.query().setBirthdate_IsNull();
+            // });
+            cb.query().setBirthdate_FromTo(null, targetBirthdate, op -> op.compareAsYear().allowOneSide().orIsNull());
 
             // order by句たち
             // 若い順だが生年月日が null のデータを最初に並べる
@@ -710,12 +718,13 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // Assert
         assertFalse(memberList.isEmpty()); // 空チェック
 
-        // TODO haru UnitTestとはいえ、会員ID:1さんが1974/12/31の際どいデータであることを変数名とかで表現したいね by jflute (2026/09/22)
+        // TODO done haru UnitTestとはいえ、会員ID:1さんが1974/12/31の際どいデータであることを変数名とかで表現したいね by jflute (2026/09/22)
         // コメントで補足はしてくれているけど、member.getMemberId().equals(1) のコードだけ見るとなんのことやらとなってしまうので。
+        // 1006修正メモ: 会員ID:1が「際どいデータ(境界値)」であることをコード上でも表現するため、変数化した(borderMemberId)
         // 検索で含まれるはずのきわどいデータ (1974/12/31生まれの会員ID1) が検索されてることをアサート
         boolean containsBorderMember = false;
         for (Member member : memberList) {
-            if (member.getMemberId().equals(1)) {
+            if (member.getMemberId().equals(borderMemberId)) {
                 containsBorderMember = true;
             }
         }
@@ -736,9 +745,12 @@ public class HandsOn03Test extends UnitContainerTestCase {
                     .map(withdrawal -> withdrawal.getWithdrawalReasonInputText()).orElse("none");
             log(memberStatusName, reminderQuestion, reminderAnswer, withdrawalReasonInputText);
 
-            // TODO haru この行こそすっきり見やすくしたいところなので、member.getBirthdate()を変数にして欲しい by jflute (2026/09/22)
+            LocalDate memberBirthdate = member.getBirthdate();
+
+            // TODO done haru この行こそすっきり見やすくしたいところなので、member.getBirthdate()を変数にして欲しい by jflute (2026/09/22)
+            // 1006修正メモ: memberBirthdateとして変数化して抽出
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員であることをアサート
-            assertTrue(member.getBirthdate() == null || member.getBirthdate().getYear() <= targetBirthdate.getYear());
+            assertTrue(memberBirthdate == null || memberBirthdate.getYear() <= targetBirthdate.getYear());
         }
     }
 
