@@ -521,7 +521,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
      */
     //1週間の定義はどうするか？
     //時間までみる。かっきり、7日後の同時刻まで
-    // TODO done haru これをやってみてください by jflute (2026/09/22)
+    // done haru これをやってみてください by jflute (2026/09/22)
     /*
     ※修行++: 実装できたら、こんどはスーパークラスのメソッド
     adjustPurchase_PurchaseDatetime_...() を呼び出し、
@@ -603,7 +603,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
             // #1on1: 確かに正式会員になってからの購入して取ってないので、正式会員にはなっているだろう (2026/09/22)
             // 今現在正式会員かどうかは問われていないので、退会会員になっちゃってる会員の購入もあるかも。
-            // TODO done haru なので、↓のコメントに書いてある条件は設定してはいけない。 by jflute (2026/09/22)
+            // done haru なので、↓のコメントに書いてある条件は設定してはいけない。 by jflute (2026/09/22)
             // ただ、実際の実装は、↓のコメント通りに実装されているわけではないので、致命的な業務ミスにはなっていない。
             // でも冗長ではあるので削除した方が良い。
             // (つまり、二つツッコミがあった。コメント上の条件の話と、実際のコードの話)
@@ -641,7 +641,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
                     .convert(op -> op.addDay(8).truncTime());
             // plusDaysかと思ったけど、convertでaddDayを使うのdが正しいらしい
             // #1on1: 関数に ...Datetime って名前を付けちゃったもんだから、ついつい引きづられて plusDays() しようとしちゃったかな (2026/09/22)
-            // TODO done haru なので、officialMemberDatetime → officialMemberDatetimeCol とか by jflute (2026/09/22)
+            // done haru なので、officialMemberDatetime → officialMemberDatetimeCol とか by jflute (2026/09/22)
             // 0927修正メモ
             // formalizedMemberDatetimeColに変数名を変更した
             // 利尻昆布のお話。Wikipedia, Github。
@@ -688,7 +688,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // スラッシュ区切りでの文字列をパースする際は、java.time.format.DateTimeFormatterを使うと良さそう
         // LocalDate.parse()は、デフォルトではyyyy-MM-dd形式の文字列しかパースできないらしい
         // memo: 日付について解説してもらった　https://ja.wikipedia.org/wiki/ISO_8601
-        // TODO done haru 細かいけど、単に targetBirthdate だけでもいいかなと。Birthdate に日付型であるニュアンスが含まれているので by jflute (2026/09/22)
+        // done haru 細かいけど、単に targetBirthdate だけでもいいかなと。Birthdate に日付型であるニュアンスが含まれているので by jflute (2026/09/22)
         // 0929メモ
         // targetBirthdateLocalDateをtargetBirthdateに変更した場合、StringのtargetBirthdateと被ってしまう。
         // どっちかというと String targetBirthdate = "1974/01/01";の方が直感的にtargetBirthdate本体な気がするけど、パースした後のLocalDate版の方が本体になるのか？🧐
@@ -713,13 +713,13 @@ public class HandsOn03Test extends UnitContainerTestCase {
             cb.setupSelect_MemberStatus();
             cb.setupSelect_MemberSecurityAsOne();
             cb.setupSelect_MemberWithdrawalAsOne();
-            // TODO done haru "where句たち" の中に、"order by句たち" が含まれてしまっている by jflute (2026/09/22)
+            // done haru "where句たち" の中に、"order by句たち" が含まれてしまっている by jflute (2026/09/22)
             // 0929修正メモ: 見出しコメントの下に種類の違う句が紛れていたので、where句たちとorder by句たちを分離した
             // where句たち
             // 0929メモ
             // 一旦ここまで
-            // TODO haru [いいね] DBFluteのFromToOptionの使い方完璧 by jflute (2026/09/22)
-            // TODO haru [あどばいす] 一応、FromToOptionを使えば、orScopeQuery()を使わないで実現することもできる by jflute (2026/09/22)
+            // done haru [いいね] DBFluteのFromToOptionの使い方完璧 by jflute (2026/09/22)
+            // done haru [あどばいす] 一応、FromToOptionを使えば、orScopeQuery()を使わないで実現することもできる by jflute (2026/09/22)
             // 1006memo
             // FromToについて
             // https://dbflute.seasar.org/ja/manual/function/ormapper/conditionbean/query/fromto.html#date
@@ -741,7 +741,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // Assert
         assertFalse(memberList.isEmpty()); // 空チェック
 
-        // TODO done haru UnitTestとはいえ、会員ID:1さんが1974/12/31の際どいデータであることを変数名とかで表現したいね by jflute (2026/09/22)
+        // done haru UnitTestとはいえ、会員ID:1さんが1974/12/31の際どいデータであることを変数名とかで表現したいね by jflute (2026/09/22)
         // コメントで補足はしてくれているけど、member.getMemberId().equals(1) のコードだけ見るとなんのことやらとなってしまうので。
         // 1006修正メモ: 会員ID:1が「際どいデータ(境界値)」であることをコード上でも表現するため、変数化した(borderMemberId)
         // 検索で含まれるはずのきわどいデータ (1974/12/31生まれの会員ID1) が検索されてることをアサート
@@ -770,7 +770,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
 
             LocalDate memberBirthdate = member.getBirthdate();
 
-            // TODO done haru この行こそすっきり見やすくしたいところなので、member.getBirthdate()を変数にして欲しい by jflute (2026/09/22)
+            // done haru この行こそすっきり見やすくしたいところなので、member.getBirthdate()を変数にして欲しい by jflute (2026/09/22)
             // 1006修正メモ: memberBirthdateとして変数化して抽出
             // 生年月日が1974年1月1日以前の会員、もしくは生年月日が不明の会員であることをアサート
             assertTrue(memberBirthdate == null || memberBirthdate.getYear() <= targetBirthdate.getYear());
