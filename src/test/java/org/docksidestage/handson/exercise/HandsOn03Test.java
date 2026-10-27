@@ -801,6 +801,11 @@ public class HandsOn03Test extends UnitContainerTestCase {
     // 考え方→2005年6月に正式会員になる=2005/06/01から2006/06/30までの間に正式会員になった会員を検索する
     public void test_formalizedMemberDatetimeIn200506AndBirthdateIsNull() throws Exception {
         // Arrange
+    	// TODO haru 文字列の方は、...Dateじゃなくて...DateExpとかにして... by jflute (2026/10/27)
+    	// メインで使う targetFormalizedLocalDate を targetFormalizedDate にしよう。
+    	// 理由:
+    	// o 文字列の日付表現というのを表現したいところ (特にStringとLocalDateが入り混じるなら)
+    	// o メインで使う変数の方を優遇して良い名前を使おう
         String targetFormalizedDate = "2005/06/01"; // 絞り込むための起点の日にちをここで用意する
         LocalDate targetFormalizedLocalDate = LocalDate.parse(targetFormalizedDate, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
@@ -813,7 +818,12 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // order by句たち
             // 2005年6月に正式会員になった会員を先に並べる
             // (targetFormalizedLocalDateをfrom/to両方に渡し、compareAsMonthでその月の範囲に変換してもらう)
+            // TODO jflute どっか1on1でManualOrderのよもやま話をする (2026/10/27)
             cb.query().addOrderBy_FormalizedDatetime_Asc().withManualOrder(op -> {
+            	// TODO haru op と opt はさすがに紛らわしいので、ここまで混じったら... by jflute (2026/10/27)
+            	//  e.g. op と fromToOp or orderOp と fromToOp
+            	// というように業務的な意味を付けてぱっと見で区別できる方が直感的。
+            	// op はその短いスコープで一つしかないからこそ採用できる名前。
                 op.when_FromTo(targetFormalizedLocalDate, targetFormalizedLocalDate, opt -> opt.compareAsMonth());
             });
             // 第二ソートキーは会員IDのd降順
@@ -832,11 +842,14 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 一度「対象月ではない会員」が出てきたら、それ以降に「対象月の会員」が現れないことを確認する
         boolean sawOutOfTargetMonth = false;
         for (Member member : memberList) {
+        	// TODO haru [いいね] formalizedDatetimeが変数に出されてて判定ロジック読みやすい by jflute (2026/10/27)
             LocalDateTime formalizedDatetime = member.getFormalizedDatetime();
             boolean inTargetMonth = formalizedDatetime != null
                     && formalizedDatetime.getYear() == targetFormalizedLocalDate.getYear()
                     && formalizedDatetime.getMonthValue() == targetFormalizedLocalDate.getMonthValue();
             if (inTargetMonth) {
+            	// TODO haru 仮にテストデータに一つも対象月の会員が存在しなかったら、素通りgreenになってしまう。 by jflute (2026/10/27)
+            	// テストが成立していることを確認するために、この分岐が通ることを保証しましょう。
                 assertFalse(sawOutOfTargetMonth); // 対象月じゃない会員より後に対象月の会員が来たらNG
             } else {
                 sawOutOfTargetMonth = true;
