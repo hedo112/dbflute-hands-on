@@ -5,12 +5,15 @@ package org.docksidestage.handson.exercise;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Resource;
 
 import org.dbflute.cbean.result.ListResultBean;
+import org.dbflute.cbean.result.PagingResultBean;
 import org.docksidestage.handson.dbflute.exbhv.MemberBhv;
 import org.docksidestage.handson.dbflute.exbhv.MemberSecurityBhv;
 import org.docksidestage.handson.dbflute.exentity.Member;
@@ -801,13 +804,15 @@ public class HandsOn03Test extends UnitContainerTestCase {
     // 考え方→2005年6月に正式会員になる=2005/06/01から2006/06/30までの間に正式会員になった会員を検索する
     public void test_formalizedMemberDatetimeIn200506AndBirthdateIsNull() throws Exception {
         // Arrange
-    	// TODO haru 文字列の方は、...Dateじゃなくて...DateExpとかにして... by jflute (2026/10/27)
-    	// メインで使う targetFormalizedLocalDate を targetFormalizedDate にしよう。
-    	// 理由:
-    	// o 文字列の日付表現というのを表現したいところ (特にStringとLocalDateが入り混じるなら)
-    	// o メインで使う変数の方を優遇して良い名前を使おう
-        String targetFormalizedDate = "2005/06/01"; // 絞り込むための起点の日にちをここで用意する
-        LocalDate targetFormalizedLocalDate = LocalDate.parse(targetFormalizedDate, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        // TODO done haru 文字列の方は、...Dateじゃなくて...DateExpとかにして... by jflute (2026/10/27)
+        // メインで使う targetFormalizedLocalDate を targetFormalizedDate にしよう。
+        // 理由:
+        // o 文字列の日付表現というのを表現したいところ (特にStringとLocalDateが入り混じるなら)
+        // o メインで使う変数の方を優遇して良い名前を使おう
+        // 1117修正メモ
+        // メインで使用する変数名をシンプルな名前にrenameしたtargetFormalizedDate
+        String targetFormalizedDateExp = "2005/06/01"; // 絞り込むための起点の日にちをここで用意する
+        LocalDate targetFormalizedDate = LocalDate.parse(targetFormalizedDateExp, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
         // Act
         // 複数指定になるため、List型で取得する
@@ -817,14 +822,17 @@ public class HandsOn03Test extends UnitContainerTestCase {
             cb.query().setBirthdate_IsNull();
             // order by句たち
             // 2005年6月に正式会員になった会員を先に並べる
-            // (targetFormalizedLocalDateをfrom/to両方に渡し、compareAsMonthでその月の範囲に変換してもらう)
+            // (targetFormalizedDateをfrom/to両方に渡し、compareAsMonthでその月の範囲に変換してもらう)
             // TODO jflute どっか1on1でManualOrderのよもやま話をする (2026/10/27)
-            cb.query().addOrderBy_FormalizedDatetime_Asc().withManualOrder(op -> {
-            	// TODO haru op と opt はさすがに紛らわしいので、ここまで混じったら... by jflute (2026/10/27)
-            	//  e.g. op と fromToOp or orderOp と fromToOp
-            	// というように業務的な意味を付けてぱっと見で区別できる方が直感的。
-            	// op はその短いスコープで一つしかないからこそ採用できる名前。
-                op.when_FromTo(targetFormalizedLocalDate, targetFormalizedLocalDate, opt -> opt.compareAsMonth());
+            cb.query().addOrderBy_FormalizedDatetime_Asc().withManualOrder(orderOp -> {
+                // TODO done haru op と opt はさすがに紛らわしいので、ここまで混じったら... by jflute (2026/10/27)
+                //  e.g. op と fromToOp or orderOp と fromToOp
+                // というように業務的な意味を付けてぱっと見で区別できる方が直感的。
+                // op はその短いスコープで一つしかないからこそ採用できる名前。
+                // 1117修正メモ
+                // 今までの書き方踏襲でopにしていたが、どっちが何のオプションか名前から読み取れないので紛らわしいため
+                // orderOpとfromToOpにrenameした
+                orderOp.when_FromTo(targetFormalizedDate, targetFormalizedDate, fromToOp -> fromToOp.compareAsMonth());
             });
             // 第二ソートキーは会員IDのd降順
             cb.query().addOrderBy_MemberId_Desc();
@@ -839,21 +847,90 @@ public class HandsOn03Test extends UnitContainerTestCase {
         }
 
         // 2005年6月に正式会員になった会員が先に並んでいることをアサート (先頭だけじゃなく全体をチェック)
-        // 一度「対象月ではない会員」が出てきたら、それ以降に「対象月の会員」が現れないことを確認する
-        boolean sawOutOfTargetMonth = false;
+        boolean sawOutOfTargetMonth = false; // 一度「対象月ではない会員」が出てきたら、それ以降に「対象月の会員」が現れないことを確認する
+        boolean sawInTargetMonth = false; // 対象月の会員を、1人でも見たかどうかを記録しておく変数
         for (Member member : memberList) {
-        	// TODO haru [いいね] formalizedDatetimeが変数に出されてて判定ロジック読みやすい by jflute (2026/10/27)
+            // TODO haru [いいね] formalizedDatetimeが変数に出されてて判定ロジック読みやすい by jflute (2026/10/27)
             LocalDateTime formalizedDatetime = member.getFormalizedDatetime();
             boolean inTargetMonth = formalizedDatetime != null
-                    && formalizedDatetime.getYear() == targetFormalizedLocalDate.getYear()
-                    && formalizedDatetime.getMonthValue() == targetFormalizedLocalDate.getMonthValue();
+                    && formalizedDatetime.getYear() == targetFormalizedDate.getYear()
+                    && formalizedDatetime.getMonthValue() == targetFormalizedDate.getMonthValue();
             if (inTargetMonth) {
-            	// TODO haru 仮にテストデータに一つも対象月の会員が存在しなかったら、素通りgreenになってしまう。 by jflute (2026/10/27)
-            	// テストが成立していることを確認するために、この分岐が通ることを保証しましょう。
+                sawInTargetMonth = true;
+                // TODO done haru 仮にテストデータに一つも対象月の会員が存在しなかったら、素通りgreenになってしまう。 by jflute (2026/10/27)
+                // テストが成立していることを確認するために、この分岐が通ることを保証しましょう。
+                // 1117修正メモ
+                // 対象月の会員を見たかを覚えておくsawInTargetMonthを追加し、ループ後にassertTrueで確認するようにした。
+                // sawOutOfTargetMonthは並び順のチェック用でsawInTargetMonthはそのチェックが空振りしてないかの確認をする
+                // 変数名ややこしい🤔？
                 assertFalse(sawOutOfTargetMonth); // 対象月じゃない会員より後に対象月の会員が来たらNG
             } else {
                 sawOutOfTargetMonth = true;
             }
         }
+        assertTrue(sawInTargetMonth); // 対象月の会員が少なくとも1人は存在することを確認
+    }
+
+    /*
+     * [ページング検索の練習]
+     * 全ての会員をページング検索
+     * 会員ステータス名称も取得
+     * 会員IDの昇順で並べる
+     * ページサイズは 3、ページ番号は 1 で検索すること
+     * 会員ID、会員名称、会員ステータス名称をログに出力
+     * SQLのログでカウント検索時と実データ検索時の違いを確認
+     * 総レコード件数が会員テーブルの全件であることをアサート
+     * 総ページ数が期待通りのページ数(計算で導出)であることをアサート
+     * 検索結果のページサイズ、ページ番号が指定されたものであることをアサート
+     * 検索結果が指定されたページサイズ分のデータだけであることをアサート
+     * PageRangeを 3 にして PageNumberList を取得し、[1, 2, 3, 4]であることをアサート
+     * 前のページが存在しないことをアサート
+     * 次のページが存在することをアサート
+     */
+    public void test_paging_basic() throws Exception {
+        // Arrange
+        // ページサイズ、ページ番号
+        int pageSize = 3;
+        int pageNumber = 1;
+        // 総レコード件数が会員テーブルの全件であることをアサートしたいので事前に会員テーブルの全件数を取っておく（比較用）
+        int allMemberCount = memberBhv.selectCount(cb -> {
+        });
+
+        // Act
+        PagingResultBean<Member> page = memberBhv.selectPage(cb -> {
+            cb.setupSelect_MemberStatus();
+            cb.query().addOrderBy_MemberId_Asc();
+            cb.paging(pageSize, pageNumber);
+        });
+
+        // Assert
+        for (Member member : page) {
+            Integer memberId = member.getMemberId();
+            String memberName = member.getMemberName();
+            String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
+            log(memberId, memberName, memberStatusName);
+        }
+
+        // 総レコード件数
+        assertEquals(allMemberCount, page.getAllRecordCount());
+
+        // 総ページ数 (全件数をページサイズで割って、余りがあれば +1)
+        int expectedAllPageCount = allMemberCount / pageSize + (allMemberCount % pageSize > 0 ? 1 : 0);
+        assertEquals(expectedAllPageCount, page.getAllPageCount());
+
+        // ページサイズ、ページ番号
+        assertEquals(pageSize, page.getPageSize());
+        assertEquals(pageNumber, page.getCurrentPageNumber());
+
+        // ページサイズ分のデータだけ
+        assertEquals(pageSize, page.size());
+
+        // PageRange
+        List<Integer> pageNumberList = page.pageRange(op -> op.rangeSize(3)).createPageNumberList();
+        assertEquals(Arrays.asList(1, 2, 3, 4), pageNumberList);
+
+        // 前後のページ
+        assertFalse(page.existsPreviousPage());
+        assertTrue(page.existsNextPage());
     }
 }
