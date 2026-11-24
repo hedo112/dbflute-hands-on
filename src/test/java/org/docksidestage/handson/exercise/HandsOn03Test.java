@@ -354,8 +354,8 @@ public class HandsOn03Test extends UnitContainerTestCase {
             // "Extract to local variable" とか使うと、比較的簡単にできるのでぜひ試してみてください。
             //
             // 0824修正メモ: Member member = purchase.getMember().get();を追加して、memberNameとmemberStatusNameの取得を変更した
-        	// #1on1: 大事な行、ここだとlog()で何を出しているのか？がパッとわかるようにが大事 (2026/09/22)
-        	// 行はすべてフラットな扱いではなく、ここぞって行は力を入れて見やすくする。
+            // #1on1: 大事な行、ここだとlog()で何を出しているのか？がパッとわかるようにが大事 (2026/09/22)
+            // 行はすべてフラットな扱いではなく、ここぞって行は力を入れて見やすくする。
             Member member = purchase.getMember().get();
             String memberName = member.getMemberName();
             String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
@@ -454,7 +454,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
             LocalDateTime formalizedMemberDatetime = member.getFormalizedDatetime();
             MemberStatus memberStatus = member.getMemberStatus().get();
             String memberStatusName = member.getMemberStatus().get().getMemberStatusName();
-            log(memberName, formalizedMemberDatetime,  memberStatusName);
+            log(memberName, formalizedMemberDatetime, memberStatusName);
 
             // 会員ステータスがコードと名称だけが取得されていることをアサート
             // 0824メモ: assertTrueの方をassertNotNullに変えて、OptionalEntityがemptyじゃないことをチェックするようにした
@@ -538,8 +538,8 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // Arrange
         // 特定のものでもないので、特に定義は必要なさそう
         // 0825memo: columQueryする中で長くなりそうなのでやっぱり定義する
-    	// #1on1: こう言うふうに関数化したやり方も見やすくていいね。 (2026/09/22)
-    	// done haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
+        // #1on1: こう言うふうに関数化したやり方も見やすくていいね。 (2026/09/22)
+        // done haru 全く一緒なのであれば、officialという新しい概念を作らず、素直にformalizedを使った方が無難 by jflute (2026/09/22)
         // (本当に、FormalizedDatetimeとちょっとニュアンス違う概念が生まれたのであれば良いけど)
         // 0927修正メモ
         // 上記TODOと下のTODO(なので、officialMemberDatetime → oficialMemberDatetimeCol とか by jflute (2026/09/22))を踏まえて、
@@ -547,7 +547,7 @@ public class HandsOn03Test extends UnitContainerTestCase {
         //
         // 正式会員になった日
         SpecifyQuery<PurchaseCB> formalizedMemberDatetimeCol = colCB -> colCB.specify().specifyMember()
-        .columnFormalizedDatetime();
+                .columnFormalizedDatetime();
         // 購入日時
         SpecifyQuery<PurchaseCB> purchaseDatetime = colCB -> colCB.specify().columnPurchaseDatetime();
         // 修行++: データを調整してくれるメソッドを用意する
@@ -812,7 +812,8 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 1117修正メモ
         // メインで使用する変数名をシンプルな名前にrenameしたtargetFormalizedDate
         String targetFormalizedDateExp = "2005/06/01"; // 絞り込むための起点の日にちをここで用意する
-        LocalDate targetFormalizedDate = LocalDate.parse(targetFormalizedDateExp, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        LocalDate targetFormalizedDate = LocalDate.parse(targetFormalizedDateExp,
+                DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
         // Act
         // 複数指定になるため、List型で取得する
@@ -932,5 +933,48 @@ public class HandsOn03Test extends UnitContainerTestCase {
         // 前後のページ
         assertFalse(page.existsPreviousPage());
         assertTrue(page.existsNextPage());
+    }
+
+    /*
+     * [カーソル検索の練習]
+     * 会員ステータスの表示順カラムで会員を並べてカーソル検索
+     * - 会員ステータスの "表示順" カラムの昇順で並べる
+     * - 会員ステータスのデータも取得
+     * - その次には、会員の会員IDの降順で並べる
+     * - 会員ステータスが取れていることをアサート
+     * - 会員が会員ステータスごとに固まって並んでいることをアサート
+     * - 検索したデータをまるごとメモリ上に持ってはいけない
+     * (要は、検索結果レコード件数と同サイズのリストや配列の作成はダメ)
+     */
+    public void test_cursor_basic() throws Exception {
+        // Arrange
+        String[] previousStatusCodeArray = { null }; // 直前の会員のステータスコードを記録する配列　nullで初期化
+        Set<String> appearedStatusCodeSet = new HashSet<>(); // これまでに出てきた会員ステータスコードを記録する
+        int[] count = { 0 }; // 処理した会員の数をカウントする
+
+        // Act
+        memberBhv.selectCursor(cb -> {
+            cb.setupSelect_MemberStatus();
+            cb.query().queryMemberStatus().addOrderBy_DisplayOrder_Asc();
+            cb.query().addOrderBy_MemberId_Desc();
+        }, member -> {
+            // Assert (カーソル検索なので1件ずつその場で検証する)
+            assertTrue(member.getMemberStatus().isPresent());
+            MemberStatus status = member.getMemberStatus().get();
+            String currentStatusCode = status.getMemberStatusCode();
+            log(member.getMemberId(), currentStatusCode);
+
+            // 一度切り替わったステータスが再び出てきたら、固まって並んでいない
+            // (currentはnullにならないので左に置く。1件目はpreviousがnullで切り替わり扱いになるが、Setが空なので問題ない)
+            String previousStatusCode = previousStatusCodeArray[0];
+            if (!currentStatusCode.equals(previousStatusCode)) {
+                assertFalse(appearedStatusCodeSet.contains(currentStatusCode));
+            }
+            previousStatusCodeArray[0] = currentStatusCode;
+            appearedStatusCodeSet.add(currentStatusCode);
+            count[0]++;
+        });
+
+        assertTrue(count[0] > 0); // 1件も検索されずにテストが通ってしまうのを防ぐ（空振り防止）
     }
 }
